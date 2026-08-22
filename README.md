@@ -4,7 +4,7 @@ English | [中文](./docs/README-zh.md)
 
 Build your own MQTT broker from scratch.
 
-Jianm is a minimal, functional MQTT broker inspired by [mosquitto](https://github.com/eclipse-mosquitto/mosquitto). It is built as a learning project to deeply understand the MQTT protocol. Currently it supports MQTT 3.1.1 packets and is based on the Asio networking library. The implementation process is documented in a blog series: "[C++ 实现 MQTT Broker：从协议到可运行代码]()".
+Jianm is a minimal, functional MQTT broker inspired by [mosquitto](https://github.com/eclipse-mosquitto/mosquitto). It is built as a learning project to deeply understand the MQTT protocol. Currently it supports MQTT 3.1.1 packets and is based on the Asio networking library. The implementation process is documented in a blog series: "[Build MQTT Broker](https://chnjfan.github.io/tags/build-mqtt-broker/)".
 
 ## Project Structure
 
