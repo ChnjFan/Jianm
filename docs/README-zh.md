@@ -195,11 +195,36 @@ allow_anonymous = true
 
 ### 连接特性
 
-| 特性           | 状态 | 说明 |
-| -------------- | :--: | ---- |
-| Clean Session  | ✅ | 清理会话标志位，控制会话状态清除 |
-| Will Flag      | ⚠️ | CONNECT 报文解析支持，遗嘱消息发布未实现 |
-| Username/Password | ⚠️ | CONNECT 报文解析支持，认证逻辑为桩函数（始终返回 true） |
-| Keep Alive     | ⚠️ | CONNECT 报文解析支持，超时断开机制未实现 |
+| 特性             | 状态 | 说明 |
+| ---------------- | :--: | ---- |
+| Clean Session    | ✅ | 清理会话标志位，控制会话状态清除与恢复 |
+| Session Present  | ✅ | 根据 CleanSession 和已有会话状态正确计算 |
+| Will Flag        | ⚠️ | CONNECT 报文解析和校验支持，遗嘱消息发布未实现 |
+| Username/Password | ⚠️ | CONNECT 报文解析、UTF-8 校验、allow_anonymous 配置支持，认证逻辑为桩函数（始终返回 true） |
+| Keep Alive       | ✅ | 1.5× KeepAlive 超时自动断开机制 |
+| ClientID 校验    | ✅ | 长度 ≤ 23 字符、UTF-8 编码校验 |
+| UTF-8 校验       | ✅ | ClientID、Username、Will Topic 的 UTF-8 编码校验 |
+| 重复 ClientID    | ✅ | 同一 ClientID 重连时断开旧连接（MQTT-3.1.4-2） |
+| 重复 CONNECT     | ✅ | 同一连接重复发送 CONNECT 视为协议违规（MQTT-3.1.0-2） |
+| Admin 管理控制台 | ✅ | Telnet 10000 端口，支持 help/status/sessions/kick/quit 命令 |
+| 日志输出         | ✅ | 支持控制台和文件两种输出目标，可配置日志级别 |
 
 > ✅ 已实现　⚠️ 部分实现　❌ 未实现
+
+### 消息与订阅（待实现）
+
+| 模块 | 功能 | 状态 | 说明 |
+| ---- | ---- | :--: | ---- |
+| 发布 | PUBLISH 报文解析与路由 | ❌ | 消息发布到订阅者 |
+| 发布 | Retained 消息存储 | ❌ | 保留新订阅者的最后一条消息 |
+| 发布 | QoS 1 消息流 | ❌ | AT_LEAST_ONCE 投递 + PUBACK |
+| 发布 | QoS 2 消息流 | ❌ | EXACTLY_ONCE 四步握手 |
+| 订阅 | SUBSCRIBE/SUBACK | ❌ | 订阅主题 + granted QoS 返回 |
+| 订阅 | UNSUBSCRIBE/UNSUBACK | ❌ | 取消订阅 |
+| 订阅 | Topic 通配符匹配 | ❌ | `+` 单层、`#` 多层通配符 |
+| 会话 | 会话状态持久化 | ❌ | CleanSession=0 时保存订阅和 pending 消息 |
+| 会话 | 离线消息队列 | ❌ | CleanSession=0 时缓存离线 QoS 1/2 消息 |
+| 心跳 | PINGREQ/PINGRESP | ❌ | 客户端心跳请求与服务端响应 |
+| 断开 | DISCONNECT 处理 | ❌ | 客户端优雅断开连接 |
+| 遗嘱 | Will Message 发布 | ❌ | 异常断开时向订阅者发布遗嘱消息 |
+| 认证 | 真实认证逻辑 | ❌ | 当前为桩函数（始终返回 true） |

@@ -199,9 +199,34 @@ Based on the MQTT 3.1.1 protocol (OASIS Standard). Current implementation progre
 
 | Feature | Status | Description |
 | ------- | :----: | ----------- |
-| Clean Session | ✅ | Clean session flag, controls session state clearing |
-| Will Flag | ⚠️ | CONNECT packet parsing supported, will message publishing not implemented |
-| Username/Password | ⚠️ | CONNECT packet parsing supported, authentication is a stub (always returns true) |
-| Keep Alive | ⚠️ | CONNECT packet parsing supported, timeout disconnect mechanism not implemented |
+| Clean Session | ✅ | Clean session flag, controls session state clearing and restoration |
+| Session Present | ✅ | Correctly calculated based on CleanSession and existing session state |
+| Will Flag | ⚠️ | CONNECT packet parsing and validation supported, will message publishing not implemented |
+| Username/Password | ⚠️ | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; authentication is a stub (always returns true) |
+| Keep Alive | ✅ | Automatic disconnect at 1.5× KeepAlive timeout |
+| ClientID Validation | ✅ | Length ≤ 23 characters, UTF-8 encoding validation |
+| UTF-8 Validation | ✅ | UTF-8 encoding validation for ClientID, Username, and Will Topic |
+| Duplicate ClientID | ✅ | Old connection disconnected when same ClientID reconnects (MQTT-3.1.4-2) |
+| Duplicate CONNECT | ✅ | Second CONNECT on same connection treated as protocol violation (MQTT-3.1.0-2) |
+| Admin Console | ✅ | Telnet on port 10000, supports help/status/sessions/kick/quit commands |
+| Log Output | ✅ | Console and file output targets, configurable log level |
 
 > ✅ Implemented　⚠️ Partially implemented　❌ Not implemented
+
+### Messaging & Subscriptions (Not yet implemented)
+
+| Module | Feature | Status | Description |
+| ------ | ------- | :----: | ----------- |
+| Publish | PUBLISH parsing & routing | ❌ | Route published messages to subscribers |
+| Publish | Retained messages | ❌ | Store last retained message for new subscribers |
+| Publish | QoS 1 flow | ❌ | AT_LEAST_ONCE delivery + PUBACK |
+| Publish | QoS 2 flow | ❌ | EXACTLY_ONCE four-step handshake |
+| Subscribe | SUBSCRIBE/SUBACK | ❌ | Subscribe to topics + granted QoS return |
+| Subscribe | UNSUBSCRIBE/UNSUBACK | ❌ | Unsubscribe from topics |
+| Subscribe | Topic wildcard matching | ❌ | `+` single-level, `#` multi-level wildcards |
+| Session | Session state persistence | ❌ | Persist subscriptions and pending messages for CleanSession=0 |
+| Session | Offline message queue | ❌ | Buffer offline QoS 1/2 messages for CleanSession=0 |
+| Heartbeat | PINGREQ/PINGRESP | ❌ | Client ping request and server response |
+| Disconnect | DISCONNECT handling | ❌ | Graceful client disconnect |
+| Will | Will Message delivery | ❌ | Publish will message to subscribers on abnormal disconnect |
+| Auth | Real authentication | ❌ | Currently a stub (always returns true) |
