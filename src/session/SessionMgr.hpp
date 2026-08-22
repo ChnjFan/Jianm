@@ -67,6 +67,7 @@ private:
 
     void connectHandler(std::shared_ptr<jianm::protocol::Message> request);
     bool sessionAuthen(const std::string& username, const std::string& password);
+    bool checkWillInvalid(const jianm::protocol::ConnectMessage& msg);
 
     void workerLoop();
 

@@ -64,7 +64,13 @@ void Channel::start()
 
 void Channel::close()
 {
-    socket_.close();
+    std::lock_guard<std::mutex> lock(mtx_);
+    closing_ = true;
+    // If nothing is pending, close immediately; otherwise asyncSend callback
+    // will close the socket after the queue drains.
+    if (sendList_.empty()) {
+        socket_.close();
+    }
 }
 
 void Channel::asyncSend(std::vector<uint8_t>&& buffer)
@@ -112,7 +118,8 @@ void Channel::asyncRemainingLen(size_t offset)
         return;
     }
 
-    int remainingLength = protocol::Packet::decodeRemainingLength(buffer_);
+    size_t rlIndex = 1;  // remaining length starts after the first fixed header byte
+    int remainingLength = static_cast<int>(protocol::Packet::decodeRemainingLength(buffer_, rlIndex));
     const protocol::Header header = { .byte = buffer_[0] };
     JM_LOG_TRACE("Received packet header: type={} qos={} dup={} retain={} remaininglen={}",
         static_cast<int>(header.bits.type),
@@ -181,6 +188,8 @@ void Channel::asyncSend()
             sendList_.pop();
             if (!sendList_.empty()) {
                 asyncSend();
+            } else if (closing_) {
+                socket_.close();
             }
         });
 }

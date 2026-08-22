@@ -91,15 +91,23 @@ void SessionMgr::handleRequest()
 
 void SessionMgr::createSession(std::shared_ptr<jianm::net::Channel> channel, const std::string &clientID)
 {
+    std::shared_ptr<Session> session;
     if (sessions_.find(clientID) != sessions_.end()) {
-        return;
+        //Specification requirement [MQTT‑3.1.4‑2]: 
+        // If a client corresponding to the ClientId is already connected, 
+        // the server MUST disconnect the existing connection (close the old channel) 
+        // before accepting the new connection.
+        session = sessions_[clientID];
+    }
+    else {
+        session = std::make_shared<Session>(clientID);
+        if (!session) {
+            channel->close();
+            throw std::runtime_error("std::make_shared<Session> error");
+        }
     }
 
-    auto session = std::make_shared<Session>(clientID);
-    if (!session) {
-        throw std::runtime_error("std::make_shared<Session> error");
-    }
-
+    // The old Channel will be released when binding a new Channel
     session->bindChannel(channel);
     channel->setConnected();
     if (clientID.empty()) {
@@ -171,6 +179,7 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
     }
 
     auto session = sessions_[clientID];
+    // SessionState::CONNECTING, it means the session did not exist before
     uint8_t present = session->getState() == SessionState::CONNECTING ? 0 : 1;
 
     // if allow_anonymous is false, we need to check username and password
@@ -179,14 +188,22 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
         if (msg.bits.username == 0
             || msg.bits.password == 0
             || !sessionAuthen(msg.payload.username, msg.payload.password)) {
-            session->connack(protocol::ConnAckReasonCode::REFUSED_BAD_USERNAME_PASSWORD, present);
+            // [MQTT‑3.2.2‑4]: When the CONNACK return code is non‑zero
+            //   Session Present MUST be set to 0
+            session->connack(protocol::ConnAckReasonCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
             return;
         }
+    }
+
+    if (checkWillInvalid(msg)) {
+        closeSession(clientID);
+        return;
     }
 
     if (session->connect(connMsg) != jianm::protocol::ReturnCode::SUCCESS) {
         // if packet error, close channel 
         closeSession(clientID);
+        return;
     }
 
     session->connack(protocol::ConnAckReasonCode::ACCEPTED, present);
@@ -197,4 +214,17 @@ bool SessionMgr::sessionAuthen(const std::string &username, const std::string &p
     (void)username;
     (void)password;
     return true;
+}
+
+bool SessionMgr::checkWillInvalid(const jianm::protocol::ConnectMessage &msg)
+{
+    if (msg.bits.will == 1) {
+        return msg.bits.will_qos > 2
+            || msg.payload.will_topic.empty();
+    }
+    else {
+        return msg.bits.will_qos != 0
+            || msg.bits.will_retain != 0;
+    }
+    return false;
 }

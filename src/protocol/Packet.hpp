@@ -38,11 +38,12 @@ namespace protocol {
 
 class Packet {
 public:
-    static uint8_t readByte(const std::vector<uint8_t> &buffer, size_t index);
-    static uint16_t readUint16(const std::vector<uint8_t> &buffer, size_t index);
-    static uint32_t readUint32(const std::vector<uint8_t> &buffer, size_t index);
+    // All read functions advance the index past the bytes they consume.
+    static uint8_t readByte(const std::vector<uint8_t> &buffer, size_t &index);
+    static uint16_t readUint16(const std::vector<uint8_t> &buffer, size_t &index);
+    static uint32_t readUint32(const std::vector<uint8_t> &buffer, size_t &index);
 
-    static int readString16(const std::vector<uint8_t> &buffer, size_t index, std::string &outString);
+    static void readString16(const std::vector<uint8_t> &buffer, size_t &index, std::string &outString);
 
     static int writeByte(std::vector<uint8_t> &buffer, uint8_t value);
     static int writeUint16(std::vector<uint8_t> &buffer, uint16_t value);
@@ -51,7 +52,9 @@ public:
     static int writeString16(std::vector<uint8_t> &buffer, const std::string &value);
 
     static size_t encodeRemainingLength(std::vector<uint8_t> &buffer, size_t length);
-    static size_t decodeRemainingLength(const std::vector<uint8_t> &buffer);
+    // Returns the decoded remaining length value and advances index past the
+    // remaining-length bytes.
+    static size_t decodeRemainingLength(const std::vector<uint8_t> &buffer, size_t &index);
 
 
 private:

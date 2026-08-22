@@ -68,6 +68,7 @@ enum class ReturnCode : uint8_t {
     UNSPECIFIED = 128,                  // unkown err
     MALFORMED_PACKET = 129,             // CONNACK, DISCONNECT, Invalid packet
     PROTOCOL_ERROR = 130,               // DISCONNECT
+    PROTOCOL_VERSION_NOT_SUPPORT = 131, // CONNACK
     BAD_USERNAME_OR_PASSWORD = 134,     // CONNACK
     NOT_AUTHORIZED = 135,
     SERVER_UNAVAILABLE = 136,

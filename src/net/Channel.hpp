@@ -69,6 +69,7 @@ private:
     void asyncSend();
 
     bool connected_;
+    bool closing_ = false;
     tcp::socket socket_;
     tcp::endpoint peerEndpoint_;
 

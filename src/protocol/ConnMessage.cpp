@@ -39,68 +39,52 @@ ReturnCode ConnMessage::serialize([[maybe_unused]] std::vector<uint8_t> &buffer)
 
 ReturnCode ConnMessage::deserialize(const std::vector<uint8_t> &buffer)
 {
-    int index = 0;
-
     if (buffer.size() < 2) {
         return ReturnCode::MALFORMED_PACKET;
     }
 
-    // deserialize the fixed header
-    message_.header.byte = buffer[index++];
-    size_t len = Packet::decodeRemainingLength(buffer);
-    index += len / 128 + 1; // skip the remaining length bytes
+    size_t index = 0;
+    // Fixed header: packet type byte
+    message_.header.byte = Packet::readByte(buffer, index);
 
-    if (checkProtoNameInvalid(buffer, index, len)) {
+    // Remaining length (variable-length encoding, advances index past it)
+    size_t remainingLength = Packet::decodeRemainingLength(buffer, index);
+    if (remainingLength == 0) {
         return ReturnCode::MALFORMED_PACKET;
     }
-    index += 2 + 4; // skip the protocol name length and the protocol name itself
 
+    // Protocol Name (2-byte length + "MQTT")
+    std::string protoName;
+    Packet::readString16(buffer, index, protoName);
+    if (protoName != "MQTT") {
+        return ReturnCode::MALFORMED_PACKET;
+    }
+
+    // Protocol Level
     uint8_t version = Packet::readByte(buffer, index);
-    index += 1;
     if (version != MQTT_PROTOCOL_V31) {
-        return ReturnCode::MALFORMED_PACKET;
+        return ReturnCode::PROTOCOL_VERSION_NOT_SUPPORT;
     }
 
-    message_.byte = Packet::readByte(buffer, index++);
+    // Connect Flags (clean_session, will, qos, retain, password, username)
+    message_.byte = Packet::readByte(buffer, index);
     message_.payload.keep_alive = Packet::readUint16(buffer, index);
-    index += 2;
+    Packet::readString16(buffer, index, message_.payload.client_id);
 
-    // Client ID
-    index += Packet::readString16(buffer, index, message_.payload.client_id);
-
-    // will topic and message if will flag is set
     if (message_.bits.will) {
-        index += Packet::readString16(buffer, index, message_.payload.will_topic);
-        // Will Message
-        index += Packet::readString16(buffer, index, message_.payload.will_message);
+        Packet::readString16(buffer, index, message_.payload.will_topic);
+        Packet::readString16(buffer, index, message_.payload.will_message);
     }
 
     if (message_.bits.username) {
-        index += Packet::readString16(buffer, index, message_.payload.username);
+        Packet::readString16(buffer, index, message_.payload.username);
     }
+
     if (message_.bits.password) {
-        index += Packet::readString16(buffer, index, message_.payload.password);
+        Packet::readString16(buffer, index, message_.payload.password);
     }
 
     return ReturnCode::SUCCESS;
-}
-
-bool ConnMessage::checkProtoNameInvalid(const std::vector<uint8_t> &buffer, int index, size_t remainingLength) const
-{
-    uint16_t protoNameLength = Packet::readUint16(buffer, index);
-
-    char protoName[] = "MQTT";
-    if (protoNameLength != sizeof(protoName) - 1
-        || remainingLength < 2 + protoNameLength) {
-        return true;
-    }
-
-    for (int i = 0; i < protoNameLength; ++i) {
-        if (buffer[index + 2 + i] != protoName[i]) {
-            return true;
-        }
-    }
-    return false;
 }
 
 ReturnCode ConnAckMessage::serialize(std::vector<uint8_t> &buffer) const

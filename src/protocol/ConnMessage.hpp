@@ -115,8 +115,6 @@ public:
     ReturnCode deserialize(const std::vector<uint8_t>& buffer) override;
 
 private:
-    bool checkProtoNameInvalid(const std::vector<uint8_t>& buffer, int index, size_t remainingLength) const;
-
     ConnectMessage message_;
 };
 

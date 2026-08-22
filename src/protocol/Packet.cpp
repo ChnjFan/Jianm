@@ -33,36 +33,43 @@ using namespace jianm::protocol;
 // remaining length can be encoded in at most 4 bytes
 static constexpr size_t MAX_REMAINING_SIZE = 4;
 
-uint8_t Packet::readByte(const std::vector<uint8_t> &buffer, size_t index)
+uint8_t Packet::readByte(const std::vector<uint8_t> &buffer, size_t &index)
 {
-    return buffer[index];
+    uint8_t value = buffer[index];
+    index += 1;
+    return value;
 }
 
-uint16_t Packet::readUint16(const std::vector<uint8_t> &buffer, size_t index)
+uint16_t Packet::readUint16(const std::vector<uint8_t> &buffer, size_t &index)
 {
-    return (static_cast<uint16_t>(buffer[index]) << 8) | static_cast<uint16_t>(buffer[index + 1]);
+    uint16_t value = (static_cast<uint16_t>(buffer[index]) << 8) |
+                     static_cast<uint16_t>(buffer[index + 1]);
+    index += 2;
+    return value;
 }
 
-uint32_t Packet::readUint32(const std::vector<uint8_t> &buffer, size_t index)
+uint32_t Packet::readUint32(const std::vector<uint8_t> &buffer, size_t &index)
 {
-    return (static_cast<uint32_t>(buffer[index]) << 24) |
-           (static_cast<uint32_t>(buffer[index + 1]) << 16) |
-           (static_cast<uint32_t>(buffer[index + 2]) << 8) |
-           static_cast<uint32_t>(buffer[index + 3]);
+    uint32_t value = (static_cast<uint32_t>(buffer[index]) << 24) |
+                     (static_cast<uint32_t>(buffer[index + 1]) << 16) |
+                     (static_cast<uint32_t>(buffer[index + 2]) << 8) |
+                     static_cast<uint32_t>(buffer[index + 3]);
+    index += 4;
+    return value;
 }
 
-int Packet::readString16(const std::vector<uint8_t> &buffer, size_t index, std::string &outString)
+void Packet::readString16(const std::vector<uint8_t> &buffer, size_t &index, std::string &outString)
 {
     if (index + 2 > buffer.size()) {
-        return 0;
+        return;
     }
 
-    uint16_t length = readUint16(buffer, index);
-    if (index + 2 + length > buffer.size() || length == 0) {
-        return 2; // return the number of bytes read for the length field
+    uint16_t length = readUint16(buffer, index);  // advances index by 2
+    if (index + length > buffer.size() || length == 0) {
+        return;
     }
-    outString.assign(buffer.begin() + index + 2, buffer.begin() + index + 2 + length);
-    return 2 + length;
+    outString.assign(buffer.begin() + index, buffer.begin() + index + length);
+    index += length;
 }
 
 int Packet::writeByte(std::vector<uint8_t> &buffer, uint8_t value)
@@ -118,17 +125,16 @@ size_t Packet::encodeRemainingLength(std::vector<uint8_t> &buffer, size_t length
     return bytes;
 }
 
-size_t Packet::decodeRemainingLength(const std::vector<uint8_t> &buffer)
+size_t Packet::decodeRemainingLength(const std::vector<uint8_t> &buffer, size_t &index)
 {
     size_t length = 0;
     size_t multiplier = 1;
-    size_t size = buffer.size();
 
-    for (size_t i = 1; i <= MAX_REMAINING_SIZE; ++i) {
-        if (size < i + 1) {
+    for (size_t i = 0; i < MAX_REMAINING_SIZE; ++i) {
+        if (index >= buffer.size()) {
             return 0;
         }
-        uint8_t byte = buffer[i];
+        uint8_t byte = buffer[index++];
         length += (byte & 0x7F) * multiplier;
         multiplier *= 128;
         // first bit of each byte indicates if there are more bytes to read
