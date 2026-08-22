@@ -53,11 +53,12 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
     }
     ReturnCode rc = msg->deserialize(buffer);
     if (rc != ReturnCode::SUCCESS) {
-        if (rc == ReturnCode::PROTOCOL_VERSION_NOT_SUPPORT) {
+        if (msg->getType() == MessageType::CONNECT
+            && rc == ReturnCode::PROTOCOL_VERSION_NOT_SUPPORT) {
             // Specification requirement [MQTT‑3.1.2‑2]: 
             // If the protocol version is not supported, a CONNACK (return code = 0x01) 
             // must be sent first, and then the connection shall be closed.
-            connack(channel, ConnAckReasonCode::REFUSED_PROTOCOL_VERSION);
+            connack(channel, ConnAckReturnCode::REFUSED_PROTOCOL_VERSION);
         }
         channel->close();
         return;
@@ -103,7 +104,7 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
         }
         else if (connMsg.payload.client_id.empty()) {
             // There have no client id, we don't know which session
-            connack(channel, ConnAckReasonCode::REFUSED_IDENTIFIER_REJECTED);
+            connack(channel, ConnAckReturnCode::REFUSED_IDENTIFIER_REJECTED);
             return;
         }
 
@@ -137,7 +138,7 @@ std::shared_ptr<Message> MessageMgr::getRequest(const int wait)
     return msg;
 }
 
-void MessageMgr::connack(const std::shared_ptr<net::Channel> &channel, ConnAckReasonCode rc, uint8_t present)
+void MessageMgr::connack(const std::shared_ptr<net::Channel> &channel, ConnAckReturnCode rc, uint8_t present)
 {
     ConnAckMessage msg = ConnAckMessage()
         .setSessionPresent(present)

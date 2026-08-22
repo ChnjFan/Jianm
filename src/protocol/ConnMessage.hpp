@@ -38,7 +38,7 @@ struct Flags {
     uint8_t reserved : 1;
     uint8_t clean_session : 1;
     uint8_t will : 1;
-    unsigned int will_qos : 2;
+    uint8_t will_qos : 2;
     uint8_t will_retain : 1;
     uint8_t password : 1;
     uint8_t username : 1;
@@ -61,11 +61,11 @@ struct ConnectMessage {
 };
 
 struct AckFlags {
-    unsigned session_present : 1;
-    unsigned reserved : 7;
+    uint8_t session_present : 1;
+    uint8_t reserved : 7;
 };
 
-enum class ConnAckReasonCode : uint8_t {
+enum class ConnAckReturnCode : uint8_t {
     ACCEPTED = 0,
     REFUSED_PROTOCOL_VERSION = 1,
     REFUSED_IDENTIFIER_REJECTED = 2,

@@ -103,12 +103,10 @@ ReturnCode ConnMessage::checkPacket() const
         return ReturnCode::PACKET_INVALID_FIELD_VALUE;
     }
 
-    if (!jianm::common::is_valid_utf8(message_.payload.client_id)) {
-        // The Client ID must be UTF‑8 encoded
-        return ReturnCode::PACKET_INVALID_FIELD_VALUE;
-    }
-
-    if (message_.bits.will != 0 && !jianm::common::is_valid_utf8(message_.payload.will_topic)) {
+    if (message_.bits.will != 0
+        && (message_.payload.will_topic.empty()
+            || message_.payload.will_message.empty()
+            || !jianm::common::is_valid_utf8(message_.payload.will_topic))) {
         return ReturnCode::PACKET_INVALID_FIELD_VALUE;
     }
 

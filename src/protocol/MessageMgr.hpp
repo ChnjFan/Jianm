@@ -50,7 +50,7 @@ private:
     friend class Singleton<MessageMgr>;
     MessageMgr() = default;
 
-    void connack(const std::shared_ptr<jianm::net::Channel>& channel, ConnAckReasonCode rc, uint8_t present=0);
+    void connack(const std::shared_ptr<jianm::net::Channel>& channel, ConnAckReturnCode rc, uint8_t present=0);
 
     std::mutex mtx_;
     std::condition_variable cond_;

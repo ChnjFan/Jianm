@@ -58,7 +58,7 @@ public:
 
     jianm::protocol::ReturnCode connect(const std::shared_ptr<jianm::protocol::ConnMessage>& connMsg);
     void close();
-    void connack(jianm::protocol::ConnAckReasonCode rc, uint8_t present);
+    void connack(jianm::protocol::ConnAckReturnCode rc, uint8_t present);
 
     void bindChannel(std::weak_ptr<jianm::net::Channel> channel);
     std::shared_ptr<jianm::net::Channel> channel() { return channel_.lock(); }

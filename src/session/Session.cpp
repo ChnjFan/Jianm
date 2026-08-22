@@ -81,7 +81,7 @@ void Session::close()
 {
 }
 
-void jianm::session::Session::connack(jianm::protocol::ConnAckReasonCode rc, uint8_t present)
+void jianm::session::Session::connack(jianm::protocol::ConnAckReturnCode rc, uint8_t present)
 {
     jianm::protocol::ConnAckMessage msg = jianm::protocol::ConnAckMessage()
         .setSessionPresent(present)

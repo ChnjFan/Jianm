@@ -91,6 +91,10 @@ void SessionMgr::handleRequest()
 
 void SessionMgr::createSession(std::shared_ptr<jianm::net::Channel> channel, const std::string &clientID)
 {
+    if (clientID.empty()) {
+        return;
+    }
+
     std::shared_ptr<Session> session;
     if (sessions_.find(clientID) != sessions_.end()) {
         //Specification requirement [MQTT‑3.1.4‑2]: 
@@ -110,9 +114,6 @@ void SessionMgr::createSession(std::shared_ptr<jianm::net::Channel> channel, con
     // The old Channel will be released when binding a new Channel
     session->bindChannel(channel);
     channel->setConnected();
-    if (clientID.empty()) {
-        return;
-    }
     sessions_.insert({clientID, session});
 }
 
@@ -132,6 +133,11 @@ void SessionMgr::closeSession(const std::string &clientID)
     if (session->isCleanSession()) {
         session->close();
         sessions_.erase(clientID);
+    }
+    else {
+        // TODO: The session needs to be removed from sessions_ and added to the retained session list.
+        // MQTT 3.1.1 does not have the Session Expiry Interval.
+        session->setState(SessionState::CONNECT_PENDING);
     }
 }
 
@@ -189,8 +195,10 @@ void jianm::session::SessionMgr::keelalive(TimePoint now)
     for (auto it = sessions_.begin(); it != sessions_.end(); ) {
         auto& session = it->second;
         ++it;
-
-        if (session->getState() != SessionState::CONNECT_PENDING && session->getKeepAlive() > 0) {
+        // TODO: Retain sessions will be using a other queue.
+        if ((session->getState() == SessionState::CONNECTED
+            || session->getState() == SessionState::ACTIVE)
+             && session->getKeepAlive() > 0) {
             auto timeout = std::chrono::milliseconds(session->getKeepAlive() * 1500);
             if (jianm::common::is_timeout(session->getLastRecvTime(), now, timeout)) {
                 JM_LOG_WARN("Session {} keepalive timeout, closing", session->getClientID());
@@ -213,7 +221,34 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
     auto session = sessions_[clientID];
     session->setLastRecvTime(Clock::now());
     // SessionState::CONNECTING, it means the session did not exist before
-    uint8_t present = session->getState() == SessionState::CONNECTING ? 0 : 1;
+    uint8_t present = (msg.bits.clean_session == 0 
+                        && session->getState() != SessionState::CONNECTING) ? 1 : 0;
+    if (msg.bits.clean_session == 0 && session->getState() != SessionState::CONNECTING) {
+        session->setState(SessionState::CONNECTING);
+        // TODO: clean topic subscribe lists
+    }
+
+    if (msg.payload.client_id.length() > 23
+        || !jianm::common::is_valid_utf8(msg.payload.client_id)) {
+        // The Client ID must be UTF‑8 encoded
+        session->connack(protocol::ConnAckReturnCode::REFUSED_IDENTIFIER_REJECTED, 0);
+        closeSession(clientID);
+        return;
+    }
+
+    if (msg.bits.username != 0 
+        && (msg.payload.username.empty()
+            || !jianm::common::is_valid_utf8(msg.payload.username))) {
+        session->connack(protocol::ConnAckReturnCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
+        closeSession(clientID);
+        return;
+    }
+
+    if (msg.bits.password != 0 && msg.payload.password.empty()) {
+        session->connack(protocol::ConnAckReturnCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
+        closeSession(clientID);
+        return;
+    }
 
     // if allow_anonymous is false, we need to check username and password
     if (jianm::common::ConfigMgr::getInstance()["allow_anonymous"].empty()
@@ -223,7 +258,8 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
             || !sessionAuthen(msg.payload.username, msg.payload.password)) {
             // [MQTT‑3.2.2‑4]: When the CONNACK return code is non‑zero
             //   Session Present MUST be set to 0
-            session->connack(protocol::ConnAckReasonCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
+            session->connack(protocol::ConnAckReturnCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
+            closeSession(clientID);
             return;
         }
     }
@@ -239,7 +275,7 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
         return;
     }
 
-    session->connack(protocol::ConnAckReasonCode::ACCEPTED, present);
+    session->connack(protocol::ConnAckReturnCode::ACCEPTED, present);
 }
 
 bool SessionMgr::sessionAuthen(const std::string &username, const std::string &password)
