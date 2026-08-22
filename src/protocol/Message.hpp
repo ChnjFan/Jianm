@@ -43,8 +43,8 @@ public:
 
     virtual MessageType getType() const = 0;
 
-    virtual ReasonCode serialize(std::vector<uint8_t>& buffer) const = 0;
-    virtual ReasonCode deserialize(const std::vector<uint8_t>& buffer) = 0;
+    virtual ReturnCode serialize(std::vector<uint8_t>& buffer) const = 0;
+    virtual ReturnCode deserialize(const std::vector<uint8_t>& buffer) = 0;
 };
 
 /// Convert a MessageType enum value to a human-readable string.

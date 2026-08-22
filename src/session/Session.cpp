@@ -46,13 +46,13 @@ Session::Session(const std::string &clientID)
 {
 }
 
-jianm::protocol::ReasonCode Session::connect(const std::shared_ptr<jianm::protocol::ConnMessage> &connMsg)
+jianm::protocol::ReturnCode Session::connect(const std::shared_ptr<jianm::protocol::ConnMessage> &connMsg)
 {
-    jianm::protocol::ReasonCode rc = jianm::protocol::ReasonCode::SUCCESS;
+    jianm::protocol::ReturnCode rc = jianm::protocol::ReturnCode::SUCCESS;
     auto& request = connMsg->getMessage();
 
     if (clientID_ != request.payload.client_id) {
-        return jianm::protocol::ReasonCode::PROTOCOL_ERROR;
+        return jianm::protocol::ReturnCode::PROTOCOL_ERROR;
     }
 
     isCleanSession_ = (request.bits.clean_session == 1);

@@ -50,7 +50,7 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
         JM_LOG_ERROR("Create message type={} error", static_cast<int>(header.bits.type));
         return;
     }
-    if (msg->deserialize(buffer) != ReasonCode::SUCCESS) {    // Invalid packet will close channel
+    if (msg->deserialize(buffer) != ReturnCode::SUCCESS) {    // Invalid packet will close channel
         channel->close();
         return;
     }

@@ -53,7 +53,7 @@ public:
 
     explicit Session(const std::string& clientID);
 
-    jianm::protocol::ReasonCode connect(const std::shared_ptr<jianm::protocol::ConnMessage>& connMsg);
+    jianm::protocol::ReturnCode connect(const std::shared_ptr<jianm::protocol::ConnMessage>& connMsg);
     void close();
     void connack(jianm::protocol::ConnAckReasonCode rc, uint8_t present);
 

@@ -111,8 +111,8 @@ public:
     MessageType getType() const override { return MessageType::CONNECT; }
     const ConnectMessage& getMessage() const { return message_; }
 
-    ReasonCode serialize(std::vector<uint8_t>& buffer) const override;
-    ReasonCode deserialize(const std::vector<uint8_t>& buffer) override;
+    ReturnCode serialize(std::vector<uint8_t>& buffer) const override;
+    ReturnCode deserialize(const std::vector<uint8_t>& buffer) override;
 
 private:
     bool checkProtoNameInvalid(const std::vector<uint8_t>& buffer, int index, size_t remainingLength) const;
@@ -128,8 +128,8 @@ public:
 
     MessageType getType() const override { return MessageType::CONNACK; }
 
-    ReasonCode serialize(std::vector<uint8_t>& buffer) const override;
-    ReasonCode deserialize(const std::vector<uint8_t>& buffer) override;
+    ReturnCode serialize(std::vector<uint8_t>& buffer) const override;
+    ReturnCode deserialize(const std::vector<uint8_t>& buffer) override;
 
     ConnAckMessage& setSessionPresent(int present) {
         message_.bits.session_present = present;

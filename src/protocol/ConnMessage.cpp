@@ -31,18 +31,18 @@
 
 using namespace jianm::protocol;
 
-ReasonCode ConnMessage::serialize([[maybe_unused]] std::vector<uint8_t> &buffer) const
+ReturnCode ConnMessage::serialize([[maybe_unused]] std::vector<uint8_t> &buffer) const
 {
     // Broker not need to serialize CONNECT message, only need to deserialize it
-    return ReasonCode::SUCCESS;
+    return ReturnCode::SUCCESS;
 }
 
-ReasonCode ConnMessage::deserialize(const std::vector<uint8_t> &buffer)
+ReturnCode ConnMessage::deserialize(const std::vector<uint8_t> &buffer)
 {
     int index = 0;
 
     if (buffer.size() < 2) {
-        return ReasonCode::MALFORMED_PACKET;
+        return ReturnCode::MALFORMED_PACKET;
     }
 
     // deserialize the fixed header
@@ -51,14 +51,14 @@ ReasonCode ConnMessage::deserialize(const std::vector<uint8_t> &buffer)
     index += len / 128 + 1; // skip the remaining length bytes
 
     if (checkProtoNameInvalid(buffer, index, len)) {
-        return ReasonCode::MALFORMED_PACKET;
+        return ReturnCode::MALFORMED_PACKET;
     }
     index += 2 + 4; // skip the protocol name length and the protocol name itself
 
     uint8_t version = Packet::readByte(buffer, index);
     index += 1;
     if (version != MQTT_PROTOCOL_V31) {
-        return ReasonCode::MALFORMED_PACKET;
+        return ReturnCode::MALFORMED_PACKET;
     }
 
     message_.byte = Packet::readByte(buffer, index++);
@@ -82,7 +82,7 @@ ReasonCode ConnMessage::deserialize(const std::vector<uint8_t> &buffer)
         index += Packet::readString16(buffer, index, message_.payload.password);
     }
 
-    return ReasonCode::SUCCESS;
+    return ReturnCode::SUCCESS;
 }
 
 bool ConnMessage::checkProtoNameInvalid(const std::vector<uint8_t> &buffer, int index, size_t remainingLength) const
@@ -103,7 +103,7 @@ bool ConnMessage::checkProtoNameInvalid(const std::vector<uint8_t> &buffer, int 
     return false;
 }
 
-ReasonCode ConnAckMessage::serialize(std::vector<uint8_t> &buffer) const
+ReturnCode ConnAckMessage::serialize(std::vector<uint8_t> &buffer) const
 {
     Packet::writeByte(buffer, message_.header.byte);
     // CONNACK remaining length is always 2 bytes
@@ -111,11 +111,11 @@ ReasonCode ConnAckMessage::serialize(std::vector<uint8_t> &buffer) const
     Packet::encodeRemainingLength(buffer, remainingLength);
     Packet::writeByte(buffer, message_.byte);
     Packet::writeByte(buffer, message_.return_code);
-    return ReasonCode::SUCCESS;
+    return ReturnCode::SUCCESS;
 }
 
-ReasonCode ConnAckMessage::deserialize([[maybe_unused]] const std::vector<uint8_t> &buffer)
+ReturnCode ConnAckMessage::deserialize([[maybe_unused]] const std::vector<uint8_t> &buffer)
 {
     // Broker not need to deserialize CONNACK message, only need to serialize it
-    return ReasonCode::SUCCESS;
+    return ReturnCode::SUCCESS;
 }

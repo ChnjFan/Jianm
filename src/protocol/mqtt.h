@@ -55,7 +55,7 @@ constexpr uint8_t MQTT_SUBACK_BYTE = 0x90;
 constexpr uint8_t MQTT_UNSUBACK_BYTE = 0xB0;
 constexpr uint8_t MQTT_PINGRESP_BYTE = 0xD0;
 
-enum class ReasonCode : uint8_t {
+enum class ReturnCode : uint8_t {
     SUCCESS = 0,
     NORMAL_DISCONNECTION = 0,
     GRANTED_QOS0 = 0,

@@ -184,7 +184,7 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
         }
     }
 
-    if (session->connect(connMsg) != jianm::protocol::ReasonCode::SUCCESS) {
+    if (session->connect(connMsg) != jianm::protocol::ReturnCode::SUCCESS) {
         // if packet error, close channel 
         closeSession(clientID);
     }
