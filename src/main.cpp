@@ -43,7 +43,10 @@ int main(int argc, char* argv[]) {
     std::string logLevel = jianm::common::ConfigMgr::getInstance()["log_level"];
     if (logLevel.empty())
         logLevel = jianm::common::DEFAULT_LOG_LEVEL;
-    jianm::common::logger_init(logLevel);
+    std::string logOutput = jianm::common::ConfigMgr::getInstance()["log_output"];
+    if (logOutput.empty())
+        logOutput = "console";
+    jianm::common::logger_init(logLevel, logOutput);
 
     try
     {

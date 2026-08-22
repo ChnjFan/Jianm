@@ -30,12 +30,13 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/async.h>
 
 namespace jianm {
 namespace common {
 
-void logger_init(const std::string& level) {
+void logger_init(const std::string& level, const std::string& output) {
     // Guard against double initialization
     if (spdlog::get("jianm")) {
         return;
@@ -46,10 +47,23 @@ void logger_init(const std::string& level) {
         spdlog::init_thread_pool(8192, 1);
     }
 
-    auto console = spdlog::stdout_color_mt<spdlog::async_factory>("jianm");
-    console->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%s:%#] %v");
-    console->set_level(spdlog::level::from_str(level));
-    spdlog::set_default_logger(console);
+    std::shared_ptr<spdlog::logger> logger;
+    if (output == "console" || output.empty()) {
+        // Log to stdout with color
+        logger = spdlog::stdout_color_mt<spdlog::async_factory>("jianm");
+        logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%s:%#] %v");
+    } else {
+        // Log to file (no color codes in file output)
+        logger = spdlog::basic_logger_mt<spdlog::async_factory>("jianm", output);
+        logger->sinks().back()->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%s:%#] %v");
+    }
+
+    logger->set_level(spdlog::level::from_str(level));
+    // Flush periodically and on error/critical, so logs appear immediately
+    // rather than only at shutdown
+    logger->flush_on(spdlog::level::warn);
+    spdlog::flush_every(std::chrono::seconds(3));
+    spdlog::set_default_logger(logger);
 }
 
 void log_trace(const std::string& msg) { spdlog::trace(msg); }

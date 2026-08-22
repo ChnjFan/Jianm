@@ -42,7 +42,10 @@ namespace common {
 
 /// Initialize the global logger. Safe to call multiple times — only the
 /// first call takes effect. Must be called once before using JM_LOG_*.
-void logger_init(const std::string& level = "info");
+/// @param level   Log level (trace/debug/info/warn/error/critical).
+/// @param output  Output target: "console" for stdout, otherwise a file path.
+void logger_init(const std::string& level = "info",
+                const std::string& output = "console");
 
 void log_trace(const std::string& msg);
 void log_debug(const std::string& msg);
