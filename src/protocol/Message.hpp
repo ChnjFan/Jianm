@@ -45,6 +45,8 @@ public:
 
     virtual ReturnCode serialize(std::vector<uint8_t>& buffer) const = 0;
     virtual ReturnCode deserialize(const std::vector<uint8_t>& buffer) = 0;
+
+    virtual ReturnCode checkPacket() const = 0;
 };
 
 /// Convert a MessageType enum value to a human-readable string.

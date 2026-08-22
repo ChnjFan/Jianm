@@ -37,6 +37,9 @@
 namespace jianm {
 namespace session {
 
+using Clock = std::chrono::steady_clock;
+using TimePoint = std::chrono::time_point<Clock>;
+
 enum class SessionState : uint8_t {
     CONNECTING = 0,
     CONNECTED = 1,
@@ -63,12 +66,22 @@ public:
     SessionState getState() const { return state_; }
     void setState(SessionState state) { state_ = state; }
 
+    void setLastSendTime(TimePoint tp) { lastSendTime_ = tp; }
+    TimePoint getLastSendTime() const { return lastSendTime_; }
+
+    void setLastRecvTime(TimePoint tp) { lastRecvTime_ = tp; }
+    TimePoint getLastRecvTime() const { return lastRecvTime_; }
+
     bool isCleanSession() const { return isCleanSession_; }
 
-private:
+    const std::string& getClientID() const { return clientID_; }
+    uint16_t getKeepAlive() const { return keepalive_; }
 
+private:
     std::string clientID_;
     SessionState state_ = SessionState::CONNECTING;
+    TimePoint lastSendTime_ = Clock::now();
+    TimePoint lastRecvTime_ = Clock::now();
 
     bool isCleanSession_ = true;
     uint16_t expiryInterval_ = 0;

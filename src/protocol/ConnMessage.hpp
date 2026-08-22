@@ -114,6 +114,8 @@ public:
     ReturnCode serialize(std::vector<uint8_t>& buffer) const override;
     ReturnCode deserialize(const std::vector<uint8_t>& buffer) override;
 
+    ReturnCode checkPacket() const override;
+
 private:
     ConnectMessage message_;
 };
@@ -128,6 +130,8 @@ public:
 
     ReturnCode serialize(std::vector<uint8_t>& buffer) const override;
     ReturnCode deserialize(const std::vector<uint8_t>& buffer) override;
+
+    ReturnCode checkPacket() const override;
 
     ConnAckMessage& setSessionPresent(int present) {
         message_.bits.session_present = present;

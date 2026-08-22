@@ -92,6 +92,7 @@ void jianm::session::Session::connack(jianm::protocol::ConnAckReasonCode rc, uin
     auto channel = channel_.lock();
     if (channel) {
         channel->asyncSend(std::move(buffer));
+        setLastSendTime(Clock::now());
     }
 }
 

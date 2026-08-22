@@ -64,7 +64,7 @@ void SessionMgr::workerLoop()
 {
     while (running_.load()) {
         handleRequest();
-        // TODO: check session state
+        retry();
     }
 }
 
@@ -135,7 +135,7 @@ void SessionMgr::closeSession(const std::string &clientID)
     }
 }
 
-void jianm::session::SessionMgr::closeChannel(const std::string &clientID)
+void SessionMgr::closeChannel(const std::string &clientID)
 {
     if (sessions_.find(clientID) == sessions_.end()) {
         return;
@@ -168,6 +168,38 @@ void SessionMgr::registerHandler(jianm::protocol::MessageType type, const Reques
     handlers_.insert({type, handler});
 }
 
+void SessionMgr::retry()
+{
+    static auto last = Clock::now();
+    auto now = Clock::now();
+    if (jianm::common::is_timeout(last, now, 5s)) {
+        last = Clock::now();
+        keelalive(now);
+    }
+}
+
+void jianm::session::SessionMgr::keelalive(TimePoint now)
+{
+    // Specification requirement [MQTT‑3.1.2.10]:
+    // The server must receive any data packet from the client within 1.5 × Keep Alive time;
+    // otherwise, it shall disconnect the connection.
+    //
+    // Iterator-safe traversal: closeSession erases from sessions_, so advance
+    // the iterator before erasing to avoid invalidation.
+    for (auto it = sessions_.begin(); it != sessions_.end(); ) {
+        auto& session = it->second;
+        ++it;
+
+        if (session->getState() != SessionState::CONNECT_PENDING && session->getKeepAlive() > 0) {
+            auto timeout = std::chrono::milliseconds(session->getKeepAlive() * 1500);
+            if (jianm::common::is_timeout(session->getLastRecvTime(), now, timeout)) {
+                JM_LOG_WARN("Session {} keepalive timeout, closing", session->getClientID());
+                closeSession(session->getClientID());
+            }
+        }
+    }
+}
+
 void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> request)
 {
     auto connMsg = std::dynamic_pointer_cast<jianm::protocol::ConnMessage>(request);
@@ -179,6 +211,7 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
     }
 
     auto session = sessions_[clientID];
+    session->setLastRecvTime(Clock::now());
     // SessionState::CONNECTING, it means the session did not exist before
     uint8_t present = session->getState() == SessionState::CONNECTING ? 0 : 1;
 

@@ -65,6 +65,9 @@ private:
     void initHandlers();
     void registerHandler(jianm::protocol::MessageType type, const RequestHandler& handler);
 
+    void retry();
+    void keelalive(TimePoint now);
+
     void connectHandler(std::shared_ptr<jianm::protocol::Message> request);
     bool sessionAuthen(const std::string& username, const std::string& password);
     bool checkWillInvalid(const jianm::protocol::ConnectMessage& msg);

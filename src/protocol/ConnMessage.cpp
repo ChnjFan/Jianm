@@ -28,6 +28,7 @@
 
 #include "ConnMessage.hpp"
 #include "Packet.hpp"
+#include "common/Utils.hpp"
 
 using namespace jianm::protocol;
 
@@ -87,6 +88,33 @@ ReturnCode ConnMessage::deserialize(const std::vector<uint8_t> &buffer)
     return ReturnCode::SUCCESS;
 }
 
+ReturnCode ConnMessage::checkPacket() const
+{
+    if (message_.bits.reserved != 0) {
+        // Specification requirement [MQTT‑3.1.2‑3]:
+        // The Reserved bit (bit 0) in the CONNECT packet MUST be 0;
+        // otherwise, the server MUST close the connection.
+        return ReturnCode::PACKET_INVALID_FIELD_VALUE;
+    }
+
+    if (message_.bits.username == 0 && message_.bits.password != 0) {
+        // Specification requirement [MQTT‑3.1.2‑8/9]:
+        // When the User Name Flag is set to 0, the Password Flag must be set to 0.
+        return ReturnCode::PACKET_INVALID_FIELD_VALUE;
+    }
+
+    if (!jianm::common::is_valid_utf8(message_.payload.client_id)) {
+        // The Client ID must be UTF‑8 encoded
+        return ReturnCode::PACKET_INVALID_FIELD_VALUE;
+    }
+
+    if (message_.bits.will != 0 && !jianm::common::is_valid_utf8(message_.payload.will_topic)) {
+        return ReturnCode::PACKET_INVALID_FIELD_VALUE;
+    }
+
+    return ReturnCode::SUCCESS;
+}
+
 ReturnCode ConnAckMessage::serialize(std::vector<uint8_t> &buffer) const
 {
     Packet::writeByte(buffer, message_.header.byte);
@@ -101,5 +129,10 @@ ReturnCode ConnAckMessage::serialize(std::vector<uint8_t> &buffer) const
 ReturnCode ConnAckMessage::deserialize([[maybe_unused]] const std::vector<uint8_t> &buffer)
 {
     // Broker not need to deserialize CONNACK message, only need to serialize it
+    return ReturnCode::SUCCESS;
+}
+
+ReturnCode ConnAckMessage::checkPacket() const
+{
     return ReturnCode::SUCCESS;
 }

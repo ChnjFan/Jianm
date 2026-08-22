@@ -52,13 +52,19 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
         return;
     }
     ReturnCode rc = msg->deserialize(buffer);
-    if (msg->deserialize(buffer) != ReturnCode::SUCCESS) {
+    if (rc != ReturnCode::SUCCESS) {
         if (rc == ReturnCode::PROTOCOL_VERSION_NOT_SUPPORT) {
             // Specification requirement [MQTT‑3.1.2‑2]: 
             // If the protocol version is not supported, a CONNACK (return code = 0x01) 
             // must be sent first, and then the connection shall be closed.
             connack(channel, ConnAckReasonCode::REFUSED_PROTOCOL_VERSION);
         }
+        channel->close();
+        return;
+    }
+
+    rc = msg->checkPacket();
+    if (rc != ReturnCode::SUCCESS) {
         channel->close();
         return;
     }
@@ -82,10 +88,10 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
             connMsg.payload.username.empty() ? "<none>" : connMsg.payload.username,
             connMsg.payload.password.empty() ? "<none>" : "***");
 
-        // Specification requirement [MQTT‑3.1.0‑2]:
-        // Receiving a second CONNECT on the same connection shall be treated as a protocol violation,
-        // and the network connection must be closed.
         if (channel->isConnected()) {
+            // Specification requirement [MQTT‑3.1.0‑2]:
+            // Receiving a second CONNECT on the same connection shall be treated as a protocol violation,
+            // and the network connection must be closed.
             JM_LOG_INFO("Receive double CONNECT from {}, disconnecting session", connMsg.payload.client_id);
             session::SessionMgr::getInstance()->closeSession(connMsg.payload.client_id);
             channel->close();
