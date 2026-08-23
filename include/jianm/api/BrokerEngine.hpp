@@ -1,10 +1,10 @@
 /*
- * File: /Singleton.hpp
- * Project: common
- * Created Date: 2026-08-19 23:13:34
+ * File: /BrokerEngine.hpp
+ * Project: api
+ * Created Date: 2026-08-23 11:52:29
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:53:57
+ * Last Modified: 2026-08-23 12:51:30
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,35 +35,11 @@
 
 #pragma once
 
-#include <memory>
-#include <mutex>
-
 namespace jianm {
-namespace common {
 
-template<typename T>
-class Singleton {
-public:
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
+class BrokerEngine {
 
-    static std::shared_ptr<T> getInstance() {
-        static std::once_flag onceToInit;
-        std::call_once(onceToInit, [&]() {
-            instance_ = std::shared_ptr<T>(new T);
-        });
-        return instance_;
-    }
-
-protected:
-    Singleton() = default;
-
-    static std::shared_ptr<T> instance_;
 };
 
-template<typename T>
-std::shared_ptr<T> Singleton<T>::instance_ = nullptr;
 
-
-} // namespace common
 } // namespace jianm
