@@ -87,3 +87,10 @@ std::string ConfigMgr::operator[](const std::string &key) {
     }
     return configs_[key];
 }
+
+std::vector<std::pair<std::string, std::string>> ConfigMgr::getAll() const {
+    std::vector<std::pair<std::string, std::string>> entries(configs_.begin(), configs_.end());
+    std::sort(entries.begin(), entries.end(),
+              [](const auto &a, const auto &b) { return a.first < b.first; });
+    return entries;
+}

@@ -31,9 +31,9 @@ file(GLOB_RECURSE JIANM_LIB_SOURCES
     protocol/*.cpp
     protocol/*.h
     protocol/*.hpp
-    session/*.cpp
-    session/*.h
-    session/*.hpp
+    broker/*.cpp
+    broker/*.h
+    broker/*.hpp
 )
 
 if(JIANM_LIB_SOURCES)

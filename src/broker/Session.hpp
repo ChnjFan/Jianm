@@ -35,7 +35,7 @@
 #include "net/Channel.hpp"
 
 namespace jianm {
-namespace session {
+namespace broker {
 
 using Clock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<Clock>;
@@ -98,7 +98,7 @@ private:
     std::weak_ptr<jianm::net::Channel> channel_;
 };
 
-} // namespace session
+} // namespace broker
 } // namespace jianm
 
 #endif

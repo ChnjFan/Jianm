@@ -30,8 +30,9 @@
 #include <sstream>
 
 #include "AdminSession.hpp"
+#include "common/ConfigMgr.hpp"
 #include "common/Logger.hpp"
-#include "session/SessionMgr.hpp"
+#include "broker/SessionMgr.hpp"
 
 using namespace jianm::net;
 
@@ -129,12 +130,13 @@ void AdminSession::processCommand(const std::string &line)
 
 void AdminSession::registerCommands()
 {
-    commands_["help"]   = [this](const std::string &a)   { cmdHelp(a); };
-    commands_["status"] = [this](const std::string &a)   { cmdStatus(a); };
-    commands_["sessions"] = [this](const std::string &a) { cmdSessions(a); };
-    commands_["kick"]   = [this](const std::string &a)   { cmdKick(a); };
-    commands_["quit"]   = [this](const std::string &a)   { cmdQuit(a); };
-    commands_["exit"]   = [this](const std::string &a)   { cmdQuit(a); };
+    commands_["help"]    = [this](const std::string &a)   { cmdHelp(a); };
+    commands_["status"]  = [this](const std::string &a)   { cmdStatus(a); };
+    commands_["config"]  = [this](const std::string &a)   { cmdConfig(a); };
+    commands_["sessions"] = [this](const std::string &a)  { cmdSessions(a); };
+    commands_["kick"]    = [this](const std::string &a)   { cmdKick(a); };
+    commands_["quit"]    = [this](const std::string &a)   { cmdQuit(a); };
+    commands_["exit"]    = [this](const std::string &a)   { cmdQuit(a); };
 }
 
 void AdminSession::cmdHelp(const std::string & /*args*/)
@@ -143,6 +145,7 @@ void AdminSession::cmdHelp(const std::string & /*args*/)
         "Available commands:\r\n"
         "  help                Show this help message\r\n"
         "  status              Show server status\r\n"
+        "  config              Show current server configuration\r\n"
         "  sessions            List connected MQTT sessions\r\n"
         "  kick <client_id>    Disconnect a client session\r\n"
         "  quit / exit         Close admin connection\r\n"
@@ -152,6 +155,22 @@ void AdminSession::cmdHelp(const std::string & /*args*/)
 void AdminSession::cmdStatus(const std::string & /*args*/)
 {
     doWrite("Server is running.\r\n> ");
+}
+
+void AdminSession::cmdConfig(const std::string & /*args*/)
+{
+    auto entries = jianm::common::ConfigMgr::getInstance().getAll();
+    std::ostringstream oss;
+    oss << "Server configuration:\r\n";
+    if (entries.empty()) {
+        oss << "  (no config loaded — using built-in defaults)\r\n";
+    } else {
+        for (const auto &[key, value] : entries) {
+            oss << "  " << key << " = " << value << "\r\n";
+        }
+    }
+    oss << "> ";
+    doWrite(oss.str());
 }
 
 void AdminSession::cmdSessions(const std::string & /*args*/)
@@ -167,7 +186,7 @@ void AdminSession::cmdKick(const std::string &args)
         doWrite("Usage: kick <client_id>\r\n> ");
         return;
     }
-    jianm::session::SessionMgr::getInstance()->closeSession(args);
+    jianm::broker::SessionMgr::getInstance()->closeSession(args, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
     doWrite("Kicked session: " + args + "\r\n> ");
 }
 

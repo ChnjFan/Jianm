@@ -34,6 +34,7 @@ namespace common {
 
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 constexpr unsigned short DEFAULT_SERVER_PORT = 1883;
 constexpr unsigned short DEFAULT_ADMIN_PORT = 10000;
@@ -51,6 +52,9 @@ public:
     ConfigMgr(const ConfigMgr& other) = delete;
     ConfigMgr& operator=(const ConfigMgr& other) = delete;
     std::string operator[](const std::string& key);
+
+    // Return all config entries as a sorted list of (key, value) pairs
+    std::vector<std::pair<std::string, std::string>> getAll() const;
 
 private:
     ConfigMgr();

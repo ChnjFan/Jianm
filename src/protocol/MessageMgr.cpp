@@ -27,7 +27,7 @@
  */
 
 #include "MessageMgr.hpp"
-#include "session/SessionMgr.hpp"
+#include "broker/SessionMgr.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 
@@ -94,7 +94,8 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
             // Receiving a second CONNECT on the same connection shall be treated as a protocol violation,
             // and the network connection must be closed.
             JM_LOG_INFO("Receive double CONNECT from {}, disconnecting session", connMsg.payload.client_id);
-            session::SessionMgr::getInstance()->closeSession(connMsg.payload.client_id);
+            broker::SessionMgr::getInstance()->closeSession(connMsg.payload.client_id,
+                     ReturnCode::DISCONNECT_WITH_WILL_MSG);
             channel->close();
             return;
         }
@@ -110,9 +111,9 @@ void MessageMgr::messageHandle(std::shared_ptr<net::Channel> channel, const std:
 
         if (connMsg.bits.clean_session != 0) {
             // Close old session, need send will message
-            session::SessionMgr::getInstance()->closeSession(connMsg.payload.client_id);
+            broker::SessionMgr::getInstance()->closeSession(connMsg.payload.client_id, ReturnCode::DISCONNECT_WITH_WILL_MSG);
         }
-        session::SessionMgr::getInstance()->createSession(channel, connMsg.payload.client_id);
+        broker::SessionMgr::getInstance()->createSession(channel, connMsg.payload.client_id);
     }
 
     {

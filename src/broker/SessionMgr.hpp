@@ -35,12 +35,13 @@
 
 #include "Session.hpp"
 #include "common/Singleton.hpp"
+#include "protocol/mqtt.h"
 #include "protocol/MessageMgr.hpp"
 #include "net/Channel.hpp"
 
 
 namespace jianm {
-namespace session {
+namespace broker {
 
 using RequestHandler = std::function<void(std::shared_ptr<jianm::protocol::Message>)>;
 
@@ -55,8 +56,8 @@ public:
     void handleRequest();
 
     void createSession(std::shared_ptr<jianm::net::Channel> channel, const std::string& clientID);
-    void closeSession(const std::string& clientID);
-    void closeChannel(const std::string& clientID);
+    void closeSession(const std::string& clientID, jianm::protocol::ReturnCode reason);
+    void closeChannel(const std::string& clientID, jianm::protocol::ReturnCode reason);
 
 private:
     friend class Singleton<SessionMgr>;
@@ -82,7 +83,7 @@ private:
     std::atomic<bool> running_{false};
 };
 
-} // namespace session
+} // namespace broker
 } // namespace jianm
 
 #endif // SESSION_MGR_HPP

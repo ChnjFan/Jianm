@@ -58,6 +58,7 @@ private:
     // Built-in commands
     void cmdHelp(const std::string &args);
     void cmdStatus(const std::string &args);
+    void cmdConfig(const std::string &args);
     void cmdSessions(const std::string &args);
     void cmdKick(const std::string &args);
     void cmdQuit(const std::string &args);

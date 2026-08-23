@@ -35,7 +35,7 @@
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 
-using namespace jianm::session;
+using namespace jianm::broker;
 
 SessionMgr::~SessionMgr()
 {
@@ -117,13 +117,17 @@ void SessionMgr::createSession(std::shared_ptr<jianm::net::Channel> channel, con
     sessions_.insert({clientID, session});
 }
 
-void SessionMgr::closeSession(const std::string &clientID)
+void SessionMgr::closeSession(const std::string &clientID, jianm::protocol::ReturnCode reason)
 {
     if (sessions_.find(clientID) == sessions_.end()) {
         return;
     }
 
     auto session = sessions_[clientID];
+
+    if (reason == jianm::protocol::ReturnCode::DISCONNECT_WITH_WILL_MSG) {
+        //TODO: publish will msg
+    }
 
     auto channel = session->channel();
     if (channel) {
@@ -141,13 +145,17 @@ void SessionMgr::closeSession(const std::string &clientID)
     }
 }
 
-void SessionMgr::closeChannel(const std::string &clientID)
+void SessionMgr::closeChannel(const std::string &clientID, jianm::protocol::ReturnCode reason)
 {
     if (sessions_.find(clientID) == sessions_.end()) {
         return;
     }
 
     auto session = sessions_[clientID];
+
+    if (reason != jianm::protocol::ReturnCode::NORMAL_DISCONNECTION) {
+        //TODO: publish will msg
+    }
 
     auto channel = session->channel();
     if (channel) {
@@ -161,7 +169,8 @@ SessionMgr::SessionMgr() {
 
 void SessionMgr::initHandlers()
 {
-    registerHandler(jianm::protocol::MessageType::CONNECT, [this](std::shared_ptr<jianm::protocol::Message> request){
+    registerHandler(jianm::protocol::MessageType::CONNECT,
+        [this](std::shared_ptr<jianm::protocol::Message> request){
         return connectHandler(request);
     });
 }
@@ -184,7 +193,7 @@ void SessionMgr::retry()
     }
 }
 
-void jianm::session::SessionMgr::keelalive(TimePoint now)
+void SessionMgr::keelalive(TimePoint now)
 {
     // Specification requirement [MQTT‑3.1.2.10]:
     // The server must receive any data packet from the client within 1.5 × Keep Alive time;
@@ -196,13 +205,13 @@ void jianm::session::SessionMgr::keelalive(TimePoint now)
         auto& session = it->second;
         ++it;
         // TODO: Retain sessions will be using a other queue.
-        if ((session->getState() == SessionState::CONNECTED
-            || session->getState() == SessionState::ACTIVE)
+        // If the session status is ACTIVE, the check will be performed in the next round.
+        if ((session->getState() == SessionState::CONNECTED)
              && session->getKeepAlive() > 0) {
             auto timeout = std::chrono::milliseconds(session->getKeepAlive() * 1500);
             if (jianm::common::is_timeout(session->getLastRecvTime(), now, timeout)) {
                 JM_LOG_WARN("Session {} keepalive timeout, closing", session->getClientID());
-                closeSession(session->getClientID());
+                closeSession(session->getClientID(), jianm::protocol::ReturnCode::DISCONNECT_WITH_WILL_MSG);
             }
         }
     }
@@ -232,7 +241,7 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
         || !jianm::common::is_valid_utf8(msg.payload.client_id)) {
         // The Client ID must be UTF‑8 encoded
         session->connack(protocol::ConnAckReturnCode::REFUSED_IDENTIFIER_REJECTED, 0);
-        closeSession(clientID);
+        closeSession(clientID, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
         return;
     }
 
@@ -240,13 +249,13 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
         && (msg.payload.username.empty()
             || !jianm::common::is_valid_utf8(msg.payload.username))) {
         session->connack(protocol::ConnAckReturnCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
-        closeSession(clientID);
+        closeSession(clientID, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
         return;
     }
 
     if (msg.bits.password != 0 && msg.payload.password.empty()) {
         session->connack(protocol::ConnAckReturnCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
-        closeSession(clientID);
+        closeSession(clientID, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
         return;
     }
 
@@ -259,19 +268,19 @@ void SessionMgr::connectHandler(std::shared_ptr<jianm::protocol::Message> reques
             // [MQTT‑3.2.2‑4]: When the CONNACK return code is non‑zero
             //   Session Present MUST be set to 0
             session->connack(protocol::ConnAckReturnCode::REFUSED_BAD_USERNAME_PASSWORD, 0);
-            closeSession(clientID);
+            closeSession(clientID, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
             return;
         }
     }
 
     if (checkWillInvalid(msg)) {
-        closeSession(clientID);
+        closeSession(clientID, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
         return;
     }
 
     if (session->connect(connMsg) != jianm::protocol::ReturnCode::SUCCESS) {
         // if packet error, close channel 
-        closeSession(clientID);
+        closeSession(clientID, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
         return;
     }
 

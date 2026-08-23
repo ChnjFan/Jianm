@@ -34,7 +34,7 @@
 #include "common/ConfigMgr.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
-#include "session/SessionMgr.hpp"
+#include "broker/SessionMgr.hpp"
 
 int main(int argc, char* argv[]) {
     (void)argc;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     try
     {
         // Start SessionMgr thread first to handle request
-        jianm::session::SessionMgr::getInstance()->start();
+        jianm::broker::SessionMgr::getInstance()->start();
 
         asio::io_context io_context{1};
         unsigned short port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
