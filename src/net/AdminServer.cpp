@@ -4,7 +4,7 @@
  * Created Date: 2026-08-21 22:42:03
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:54:15
+ * Last Modified: 2026-08-23 14:15:27
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -40,9 +40,9 @@
 
 using namespace jianm::net;
 
-AdminServer::AdminServer(asio::io_context &io_context, unsigned short port)
-    : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
-    , ioContext_(io_context)
+AdminServer::AdminServer(unsigned short port)
+    : io_context_(1)
+    , acceptor_(io_context_, tcp::endpoint(tcp::v4(), port))
 {
 }
 
@@ -52,10 +52,15 @@ void AdminServer::start()
     doAccept();
 }
 
+void jianm::net::AdminServer::stop()
+{
+    io_context_.stop();
+}
+
 void AdminServer::doAccept()
 {
     auto self = shared_from_this();
-    auto session = std::make_shared<AdminSession>(ioContext_);
+    auto session = std::make_shared<AdminSession>(io_context_);
     acceptor_.async_accept(session->getSocket(),
         [this, self, session](const asio::error_code &ec) {
             if (ec) {

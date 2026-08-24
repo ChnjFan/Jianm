@@ -1,10 +1,10 @@
 /*
- * File: /MessageMgr.hpp
- * Project: protocol
- * Created Date: 2026-08-19 12:25:02
+ * File: /Qos.hpp
+ * Project: model
+ * Created Date: 2026-08-23 15:32:24
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:56:37
+ * Last Modified: 2026-08-23 15:34:33
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,42 +35,17 @@
 
 #pragma once
 
-#include "mqtt.h"
-#include "Message.hpp"
-#include "ConnMessage.hpp"
-#include "common/Singleton.hpp"
-#include "net/Channel.hpp"
+#include <cstdint>
 
 namespace jianm {
-namespace protocol {
+namespace broker {
 
-class MessageMgr : public jianm::common::Singleton<MessageMgr> {
-public:
-    ~MessageMgr();
-
-    void messageHandle(std::shared_ptr<jianm::net::Channel> channel, const std::vector<uint8_t>& buffer);
-
-    std::shared_ptr<Message> getRequest(int wait = 1000);
-    
-private:
-    friend class Singleton<MessageMgr>;
-    MessageMgr() = default;
-
-    void connack(const std::shared_ptr<jianm::net::Channel>& channel, ConnAckReturnCode rc, uint8_t present=0);
-
-    std::mutex mtx_;
-    std::condition_variable cond_;
-    std::queue<std::shared_ptr<Message>> requests_;
+/// @brief MQTT 3.1.1 QoS Levels
+enum class Qos : uint8_t {
+    AtMostOnce = 0,   // QoS 0: At most once
+    AtLeastOnce = 1,  // QoS 1: At least once
+    ExactlyOnce = 2,  // QoS 2: Exactly Once
 };
 
-class MessageFactory {
-public:
-    static std::shared_ptr<Message> createMessage(MessageType type);
-
-private:
-    MessageFactory() = default;
-    virtual ~MessageFactory() = default;
-};
-
-} // namespace protocol
-} // namespace jianm
+}  // namespace broker
+}  // namespace mqtt

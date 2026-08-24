@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:19:56
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:53:04
+ * Last Modified: 2026-08-23 13:31:17
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -44,7 +44,6 @@ namespace common {
 
 constexpr unsigned short DEFAULT_SERVER_PORT = 1883;
 constexpr unsigned short DEFAULT_ADMIN_PORT = 10000;
-const std::string DEFAULT_LOG_LEVEL = "debug";
 
 class ConfigMgr {
 public:

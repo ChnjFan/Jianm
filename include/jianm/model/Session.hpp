@@ -1,10 +1,10 @@
 /*
- * File: /main.cpp
- * Project: src
- * Created Date: 2026-08-23 10:24:50
+ * File: /Session.hpp
+ * Project: model
+ * Created Date: 2026-08-23 15:34:40
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:16:33
+ * Last Modified: 2026-08-23 16:18:43
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -34,52 +34,27 @@
  */
 
 
+#pragma once
 
-#include <iostream>
-#include <memory>
+#include <string>
+#include <vector>
 
-#include "common/ConfigMgr.hpp"
-#include "common/Utils.hpp"
-#include "common/Logger.hpp"
+#include "jianm/model/Subscription.hpp"
 
-#include "jianm/api/BrokerEngine.hpp"
+namespace jianm {
+namespace broker {
 
-int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
+/**
+ * @brief Session
+ * 
+ * Cross‑connection survival when clean_session=false
+ */
+struct Session
+{
+    std::string client_id;
+    bool clean_session{true};
+    std::vector<Subscription> subscriptions;
+};
 
-    try
-    {
-        jianm::broker::BrokerEngine::Options opts;
-        opts.port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
-                                .value_or(jianm::common::DEFAULT_SERVER_PORT);
-        opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
-                                     .value_or(jianm::common::DEFAULT_ADMIN_PORT);
-
-        asio::io_context ctx{1};
-        jianm::broker::BrokerEngine broker(opts, ctx);
-
-        if (!broker.start()) {
-            return 1;
-        }
-
-        asio::signal_set signals(ctx, SIGINT, SIGTERM);
-        signals.async_wait([&ctx](const asio::error_code &error, [[maybe_unused]] int signal_number) {
-            if (error) {
-                return;
-            }
-            ctx.stop();
-        });
-
-        ctx.run();
-
-        broker.stop();
-        JM_LOG_INFO("server close success");
-    }
-    catch(const std::exception& e)
-    {
-        JM_LOG_ERROR("server shutdown by: {}", e.what());
-    }
-
-    return 0;
-}
+}  // namespace broker
+}  // namespace mqtt

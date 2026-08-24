@@ -1,10 +1,10 @@
 /*
- * File: /Packet.hpp
+ * File: /Codec.hpp
  * Project: protocol
  * Created Date: 2026-08-22 19:27:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:57:19
+ * Last Modified: 2026-08-24 11:09:22
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -36,19 +36,37 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
-#include "mqtt.h"
+#include "jianm/model/Packet.hpp"
 
 namespace jianm {
 namespace protocol {
 
-class Packet {
+using PacketPtr = std::shared_ptr<jianm::broker::Packet>;
+using DeserializeFunc = std::function<PacketPtr (const std::vector<uint8_t>& buffer)>;
+using SerializeFunc = std::function<bool (PacketPtr, std::vector<uint8_t>& buffer)>;
+
+class Codec {
 public:
+    static size_t encodeRemainingLength(std::vector<uint8_t> &buffer, size_t length);
+    // Returns the decoded remaining length value and advances index past the
+    // remaining-length bytes.
+    static size_t decodeRemainingLength(const std::vector<uint8_t> &buffer, size_t &index);
+
+    static PacketPtr decode(const std::vector<uint8_t>& buffer);
+    static bool encode(const PacketPtr& pkt, std::vector<uint8_t>& buffer);
+
+private:
+    // tool class to help with encoding and decoding MQTT packets
+    // do not instantiate this class directly, use static methods instead
+    Codec() = default;
+    virtual ~Codec() = default;
+
     // All read functions advance the index past the bytes they consume.
     static uint8_t readByte(const std::vector<uint8_t> &buffer, size_t &index);
     static uint16_t readUint16(const std::vector<uint8_t> &buffer, size_t &index);
     static uint32_t readUint32(const std::vector<uint8_t> &buffer, size_t &index);
-
     static void readString16(const std::vector<uint8_t> &buffer, size_t &index, std::string &outString);
 
     static int writeByte(std::vector<uint8_t> &buffer, uint8_t value);
@@ -57,18 +75,22 @@ public:
 
     static int writeString16(std::vector<uint8_t> &buffer, const std::string &value);
 
-    static size_t encodeRemainingLength(std::vector<uint8_t> &buffer, size_t length);
-    // Returns the decoded remaining length value and advances index past the
-    // remaining-length bytes.
-    static size_t decodeRemainingLength(const std::vector<uint8_t> &buffer, size_t &index);
+    static PacketPtr deserializePacket(uint8_t type, const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializeConnect(const std::vector<uint8_t>& buffer);
 
+    static bool serializePacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializeConnack(PacketPtr pkt, std::vector<uint8_t>& buffer);
 
-private:
-    // tool class to help with encoding and decoding MQTT packets
-    // do not instantiate this class directly, use static methods instead
-    Packet() = default;
-    virtual ~Packet() = default;
+    static inline const DeserializeFunc decoders_[] = {
+        nullptr,
+        deserializeConnect,
+    };
 
+    static inline const SerializeFunc encoders_[] = {
+        nullptr,
+        nullptr,
+        serializeConnack,
+    };
 };
 
 } // namespace protocol

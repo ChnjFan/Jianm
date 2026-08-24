@@ -1,10 +1,10 @@
 /*
- * File: /main.cpp
- * Project: src
- * Created Date: 2026-08-23 10:24:50
+ * File: /ITransport.hpp
+ * Project: contracts
+ * Created Date: 2026-08-23 16:40:31
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:16:33
+ * Last Modified: 2026-08-24 13:49:15
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,53 +33,36 @@
  * HISTORY:
  */
 
+#pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <asio.hpp>
 
-#include <iostream>
-#include <memory>
+namespace jianm {
+namespace broker {
 
-#include "common/ConfigMgr.hpp"
-#include "common/Utils.hpp"
-#include "common/Logger.hpp"
+typedef std::function<void(const asio::error_code& ec)> ReadFinishedCallback;
 
-#include "jianm/api/BrokerEngine.hpp"
+/**
+ * @brief Transport‑Layer Abstraction
+ * 
+ * Respective Implementations of TCP / TLS / WebSocket
+ */
+class ITransport
+{
+public:
+    virtual ~ITransport() = default;
 
-int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
+    virtual void asyncReadSome(std::vector<uint8_t>& buffer, const size_t readSize, const size_t totalSize,
+             const ReadFinishedCallback& callback) = 0;
+    virtual void asyncSend(std::vector<uint8_t>&& buffer) = 0;
 
-    try
-    {
-        jianm::broker::BrokerEngine::Options opts;
-        opts.port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
-                                .value_or(jianm::common::DEFAULT_SERVER_PORT);
-        opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
-                                     .value_or(jianm::common::DEFAULT_ADMIN_PORT);
+    virtual void close() = 0;
 
-        asio::io_context ctx{1};
-        jianm::broker::BrokerEngine broker(opts, ctx);
+    virtual asio::ip::tcp::socket& getSocket() = 0;
+};
 
-        if (!broker.start()) {
-            return 1;
-        }
-
-        asio::signal_set signals(ctx, SIGINT, SIGTERM);
-        signals.async_wait([&ctx](const asio::error_code &error, [[maybe_unused]] int signal_number) {
-            if (error) {
-                return;
-            }
-            ctx.stop();
-        });
-
-        ctx.run();
-
-        broker.stop();
-        JM_LOG_INFO("server close success");
-    }
-    catch(const std::exception& e)
-    {
-        JM_LOG_ERROR("server shutdown by: {}", e.what());
-    }
-
-    return 0;
-}
+} // namespace broker 
+} // namespace jian 

@@ -1,10 +1,10 @@
 /*
- * File: /Message.hpp
- * Project: protocol
- * Created Date: 2026-08-21 17:18:42
+ * File: /PacketDispatcher.cpp
+ * Project: broker
+ * Created Date: 2026-08-23 15:51:08
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:56:33
+ * Last Modified: 2026-08-24 12:04:57
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,30 +33,22 @@
  * HISTORY:
  */
 
-#pragma once
+#include "PacketDispatcher.hpp"
 
-#include <vector>
+using namespace jianm::broker;
 
-#include "mqtt.h"
 
-namespace jianm {
-namespace protocol {
+void PacketDispatcher::registerHandler(PacketType type, std::unique_ptr<IPacketHandler> handler)
+{
+    handlers_[static_cast<uint8_t>(type)] = std::move(handler);
+}
 
-class Message {
-public:
-    Message() = default;
-    virtual ~Message() = default;
-
-    virtual MessageType getType() const = 0;
-
-    virtual ReturnCode serialize(std::vector<uint8_t>& buffer) const = 0;
-    virtual ReturnCode deserialize(const std::vector<uint8_t>& buffer) = 0;
-
-    virtual ReturnCode checkPacket() const = 0;
-};
-
-/// Convert a MessageType enum value to a human-readable string.
-const char* messageTypeName(MessageType type);
-
-} // namespace protocol
-} // namespace jianm
+void PacketDispatcher::dispatch(BrokerServices &svc, std::shared_ptr<ClientContext> &client,
+     const std::shared_ptr<Packet> &pkt)
+{
+    auto it = handlers_.find(static_cast<uint8_t>(pkt->type));
+    if (it == handlers_.end()) {
+        throw std::runtime_error("unhandled packet type");
+    }
+    it->second->handle(svc, client, pkt);
+}

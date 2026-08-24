@@ -1,10 +1,10 @@
 /*
- * File: /Server.hpp
- * Project: net
- * Created Date: 2026-08-21 10:14:10
+ * File: /PacketDispatcher.hpp
+ * Project: broker
+ * Created Date: 2026-08-23 15:28:15
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:55:30
+ * Last Modified: 2026-08-24 12:04:38
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -36,22 +36,31 @@
 #pragma once
 
 #include <memory>
-#include <asio.hpp>
+#include <unordered_map>
+
+#include "jianm/contracts/IPacketHandler.hpp"
 
 namespace jianm {
-namespace net {
+namespace broker {
 
-using tcp = asio::ip::tcp;
-
-class Server : public std::enable_shared_from_this<Server> {
+/**
+ * @brief Message Dispatcher
+ * 
+ * Registry of PacketType → IPacketHandler
+ */
+class PacketDispatcher
+{
 public:
-    Server(asio::io_context &io_context, unsigned short port);
-    void start();
+    PacketDispatcher() = default;
+    ~PacketDispatcher() = default;
+
+    void registerHandler(PacketType type, std::unique_ptr<IPacketHandler> handler);
+    void dispatch(BrokerServices& svc, std::shared_ptr<ClientContext> &client,
+                    const std::shared_ptr<Packet> &pkt);
 
 private:
-    tcp::acceptor acceptor_;
-    asio::io_context& ioContext_;
+    std::unordered_map<uint8_t, std::unique_ptr<IPacketHandler>> handlers_;
 };
 
-} // namespace net
+} // namespace broker
 } // namespace jianm

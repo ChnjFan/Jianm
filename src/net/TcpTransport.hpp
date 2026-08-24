@@ -1,10 +1,10 @@
 /*
- * File: /Message.cpp
- * Project: protocol
- * Created Date: 2026-08-21 17:19:17
+ * File: /TcpTransport.hpp
+ * Project: net
+ * Created Date: 2026-08-23 17:20:17
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:56:07
+ * Last Modified: 2026-08-24 13:16:08
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,39 +33,41 @@
  * HISTORY:
  */
 
+#pragma once
 
+#include <asio.hpp>
 
-#include "Message.hpp"
-
-#include <unordered_map>
+#include "jianm/contracts/ITransport.hpp"
 
 namespace jianm {
-namespace protocol {
+namespace net {
 
-static const std::unordered_map<MessageType, const char*> messageTypeNameMap = {
-    { MessageType::CONNECT,     "CONNECT" },
-    { MessageType::CONNACK,     "CONNACK" },
-    { MessageType::PUBLISH,     "PUBLISH" },
-    { MessageType::PUBACK,      "PUBACK" },
-    { MessageType::PUBREC,      "PUBREC" },
-    { MessageType::PUBREL,      "PUBREL" },
-    { MessageType::PUBCOMP,     "PUBCOMP" },
-    { MessageType::SUBSCRIBE,   "SUBSCRIBE" },
-    { MessageType::SUBACK,      "SUBACK" },
-    { MessageType::UNSUBSCRIBE, "UNSUBSCRIBE" },
-    { MessageType::UNSUBACK,   "UNSUBACK" },
-    { MessageType::PINGREQ,     "PINGREQ" },
-    { MessageType::PINGRESP,    "PINGRESP" },
-    { MessageType::DISCONNECT,  "DISCONNECT" },
+class TcpTransport 
+    : public jianm::broker::ITransport
+    , public std::enable_shared_from_this<TcpTransport>
+{
+public:
+    explicit TcpTransport(asio::io_context &ctx);
+    ~TcpTransport() override { close(); }
+
+    void asyncReadSome(std::vector<uint8_t>& buffer, const size_t readSize, const size_t totalSize,
+             const jianm::broker::ReadFinishedCallback& callback) override;
+    void asyncSend(std::vector<uint8_t>&& buffer) override;
+    void close() override;
+
+    asio::ip::tcp::socket& getSocket() override { return socket_; };
+
+private:
+    void asyncSend();
+
+    asio::ip::tcp::socket socket_;
+
+    bool closing_ = false;
+
+    std::mutex mtx_;
+    std::queue<std::vector<uint8_t>> send_lists_;
 };
 
-const char* messageTypeName(MessageType type) {
-    auto it = messageTypeNameMap.find(type);
-    if (it != messageTypeNameMap.end()) {
-        return it->second;
-    }
-    return "UNKNOWN";
-}
 
-} // namespace protocol
+} // namespace net
 } // namespace jianm

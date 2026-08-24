@@ -1,10 +1,10 @@
 /*
- * File: /SessionMgr.hpp
+ * File: /SessionManager.hpp
  * Project: broker
  * Created Date: 2026-08-23 10:24:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:52:27
+ * Last Modified: 2026-08-24 12:34:22
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -39,54 +39,42 @@
 #include <thread>
 #include <unordered_map>
 
-#include "Session.hpp"
+#include "jianm/model/Session.hpp"
+
 #include "common/Singleton.hpp"
-#include "protocol/mqtt.h"
-#include "protocol/MessageMgr.hpp"
 #include "net/Channel.hpp"
 
+#include "ClientContext.hpp"
 
 namespace jianm {
 namespace broker {
 
-using RequestHandler = std::function<void(std::shared_ptr<jianm::protocol::Message>)>;
-
-class SessionMgr : public common::Singleton<SessionMgr>
+class SessionManager
 {
 public:
-    ~SessionMgr();
+    SessionManager();
+    ~SessionManager();
 
     void start();
     void stop();
 
-    void handleRequest();
+    std::shared_ptr<ClientContext> addChannel(jianm::net::ChannelPtr channel);
+    std::shared_ptr<ClientContext> byChannel(jianm::net::ChannelPtr channel);
 
-    void createSession(std::shared_ptr<jianm::net::Channel> channel, const std::string& clientID);
-    void closeSession(const std::string& clientID, jianm::protocol::ReturnCode reason);
-    void closeChannel(const std::string& clientID, jianm::protocol::ReturnCode reason);
+    void bindId(const std::string& client_id, std::shared_ptr<ClientContext> ctx);
+    std::shared_ptr<ClientContext> byId(const std::string& clientId);
+
+    void removeChannel(const jianm::net::ChannelPtr& channel);
+
+    bool sessionExists(const std::string& client_id) const;
+    std::shared_ptr<Session> getSession(const std::string& client_id, bool clean);
 
 private:
-    friend class Singleton<SessionMgr>;
-    SessionMgr();
-
-    void initHandlers();
-    void registerHandler(jianm::protocol::MessageType type, const RequestHandler& handler);
-
-    void retry();
-    void keelalive(TimePoint now);
-
-    void connectHandler(std::shared_ptr<jianm::protocol::Message> request);
-    bool sessionAuthen(const std::string& username, const std::string& password);
-    bool checkWillInvalid(const jianm::protocol::ConnectMessage& msg);
-
-    void workerLoop();
+    void dropSession(const std::shared_ptr<Session>& session);
 
     std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
-
-    std::unordered_map<jianm::protocol::MessageType, RequestHandler> handlers_;
-
-    std::thread workerThread_;
-    std::atomic<bool> running_{false};
+    std::unordered_map<jianm::net::Channel*, std::shared_ptr<ClientContext>> by_channel_;
+    std::unordered_map<std::string, std::shared_ptr<ClientContext>> by_id_;
 };
 
 } // namespace broker

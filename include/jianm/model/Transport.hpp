@@ -1,10 +1,10 @@
 /*
- * File: /main.cpp
- * Project: src
- * Created Date: 2026-08-23 10:24:50
+ * File: /Transport.hpp
+ * Project: model
+ * Created Date: 2026-08-23 16:50:07
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:16:33
+ * Last Modified: 2026-08-23 16:51:50
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -34,52 +34,19 @@
  */
 
 
+#pragma once
 
-#include <iostream>
-#include <memory>
+#include <cstdint>
 
-#include "common/ConfigMgr.hpp"
-#include "common/Utils.hpp"
-#include "common/Logger.hpp"
+namespace jianm {
+namespace broker {
 
-#include "jianm/api/BrokerEngine.hpp"
+/// @brief Transport Layer Protocol Type
+enum class TransportType : uint8_t {
+    tcp = 1,
+    ssl = 2,
+    websocket = 3,
+};
 
-int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
-
-    try
-    {
-        jianm::broker::BrokerEngine::Options opts;
-        opts.port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
-                                .value_or(jianm::common::DEFAULT_SERVER_PORT);
-        opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
-                                     .value_or(jianm::common::DEFAULT_ADMIN_PORT);
-
-        asio::io_context ctx{1};
-        jianm::broker::BrokerEngine broker(opts, ctx);
-
-        if (!broker.start()) {
-            return 1;
-        }
-
-        asio::signal_set signals(ctx, SIGINT, SIGTERM);
-        signals.async_wait([&ctx](const asio::error_code &error, [[maybe_unused]] int signal_number) {
-            if (error) {
-                return;
-            }
-            ctx.stop();
-        });
-
-        ctx.run();
-
-        broker.stop();
-        JM_LOG_INFO("server close success");
-    }
-    catch(const std::exception& e)
-    {
-        JM_LOG_ERROR("server shutdown by: {}", e.what());
-    }
-
-    return 0;
-}
+}  // namespace broker
+}  // namespace mqtt

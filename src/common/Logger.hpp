@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 17:25:58
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:53:22
+ * Last Modified: 2026-08-23 13:31:23
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -45,6 +45,8 @@
 
 namespace jianm {
 namespace common {
+
+const std::string DEFAULT_LOG_LEVEL = "debug";
 
 /// Initialize the global logger. Safe to call multiple times — only the
 /// first call takes effect. Must be called once before using JM_LOG_*.

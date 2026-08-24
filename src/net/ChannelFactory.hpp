@@ -1,10 +1,10 @@
 /*
- * File: /main.cpp
- * Project: src
- * Created Date: 2026-08-23 10:24:50
+ * File: /ChannelFactory.hpp
+ * Project: net
+ * Created Date: 2026-08-23 16:36:06
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:16:33
+ * Last Modified: 2026-08-23 17:34:08
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,53 +33,43 @@
  * HISTORY:
  */
 
+#pragma once
 
-
-#include <iostream>
 #include <memory>
+#include <asio.hpp>
 
-#include "common/ConfigMgr.hpp"
-#include "common/Utils.hpp"
-#include "common/Logger.hpp"
+#include "jianm/model/Transport.hpp"
+#include "Channel.hpp"
 
-#include "jianm/api/BrokerEngine.hpp"
+namespace jianm {
+namespace net {
 
-int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
+/**
+ * @brief Connect Factory
+ * 
+ * Create specific Transport + Codec combinations according to listener configurations
+ */
+class ChannelFactory
+{
+public:
+    struct Config {
+        jianm::broker::TransportType type;
 
-    try
-    {
-        jianm::broker::BrokerEngine::Options opts;
-        opts.port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
-                                .value_or(jianm::common::DEFAULT_SERVER_PORT);
-        opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
-                                     .value_or(jianm::common::DEFAULT_ADMIN_PORT);
+        std::string ssl_cert_path;
+        std::string ssl_key_path;
 
-        asio::io_context ctx{1};
-        jianm::broker::BrokerEngine broker(opts, ctx);
+        bool enable_websocket = false;
+    };
 
-        if (!broker.start()) {
-            return 1;
-        }
+    ChannelFactory(Config cfg, asio::io_context& ctx);
+    ~ChannelFactory();
 
-        asio::signal_set signals(ctx, SIGINT, SIGTERM);
-        signals.async_wait([&ctx](const asio::error_code &error, [[maybe_unused]] int signal_number) {
-            if (error) {
-                return;
-            }
-            ctx.stop();
-        });
+    std::shared_ptr<Channel> create() const;
 
-        ctx.run();
+private:
+    class Impl;
+    std::unique_ptr<Impl> impl_;
+};
 
-        broker.stop();
-        JM_LOG_INFO("server close success");
-    }
-    catch(const std::exception& e)
-    {
-        JM_LOG_ERROR("server shutdown by: {}", e.what());
-    }
-
-    return 0;
-}
+} // namespace net
+} // namespace jianm

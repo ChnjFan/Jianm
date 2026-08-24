@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 17:08:11
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:55:17
+ * Last Modified: 2026-08-24 13:16:21
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -38,51 +38,57 @@
 #include <memory>
 #include <asio.hpp>
 
+#include "jianm/contracts/ITransport.hpp"
+#include "jianm/model/Packet.hpp"
+
 namespace jianm {
 namespace net {
 
 using tcp = asio::ip::tcp;
+using clock = std::chrono::steady_clock;
+using time_point = std::chrono::time_point<clock>;
 
-typedef std::function<void(const asio::error_code&)> ReadFinishedCallback;
+class Channel;
+using ChannelPtr = std::shared_ptr<Channel>;
+using PacketPtr = std::shared_ptr<jianm::broker::Packet>;
 
 class Channel : public std::enable_shared_from_this<Channel> {
 public:
-    explicit Channel(asio::io_context &io_context);
+    explicit Channel(std::shared_ptr<jianm::broker::ITransport> transport);
+
     ~Channel();
 
     void start();
     void close();
 
-    tcp::socket& getSocket() { return socket_; }
+    void requestClose(const std::string& reason);
 
-    bool isConnected() const { return connected_; }
-    // set connected when bind session
-    void setConnected() { connected_ = true; }
-    void asyncSend(std::vector<uint8_t>&& buffer);
+    tcp::socket& getSocket() { return transport_->getSocket(); }
 
-    // Peer endpoint accessors
-    std::string getPeerIp() const { return peerEndpoint_.address().to_string(); }
-    uint16_t getPeerPort() const { return peerEndpoint_.port(); }
-    const tcp::endpoint& getPeerEndpoint() const { return peerEndpoint_; }
+    bool asyncSend(const PacketPtr& packet);
+
+    void setKeepalive(uint16_t seconds);
+    std::string getPeer() const { return peer_; }
+
+    // Event Callback, Injected by BrokerEngine
+    std::function<void(const ChannelPtr&, const PacketPtr&)> on_packet;
+    std::function<void(const ChannelPtr&, const std::string&)> on_close;
 
 private:
     void asyncReadHead();
     void asyncRemainingLen(size_t offset);
     void asyncReadPayload(size_t offset, size_t size);
 
-    void asyncReadSome(const size_t readSize, const size_t totalSize, const ReadFinishedCallback& callback);
 
-    void asyncSend();
+    std::shared_ptr<jianm::broker::ITransport> transport_;
 
-    bool connected_;
     bool closing_ = false;
-    tcp::socket socket_;
-    tcp::endpoint peerEndpoint_;
+    [[maybe_unused]] bool close_posted_ = false;
+    uint16_t keepalive_ = 0;
+    time_point last_read_ = clock::now();
+    std::string peer_;
 
     std::vector<uint8_t> buffer_;
-
-    std::mutex mtx_;
-    std::queue<std::vector<uint8_t>> sendList_;
 };
 
 } // namespace net

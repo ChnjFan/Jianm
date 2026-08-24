@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:54:37
+ * Last Modified: 2026-08-24 14:38:14
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -41,7 +41,7 @@
 #include "AdminSession.hpp"
 #include "common/ConfigMgr.hpp"
 #include "common/Logger.hpp"
-#include "broker/SessionMgr.hpp"
+#include "broker/SessionManager.hpp"
 
 using namespace jianm::net;
 
@@ -184,7 +184,7 @@ void AdminSession::cmdConfig(const std::string & /*args*/)
 
 void AdminSession::cmdSessions(const std::string & /*args*/)
 {
-    // SessionMgr currently doesn't expose a public listing API.
+    // SessionManager currently doesn't expose a public listing API.
     // For now, just indicate that there's no public accessor.
     doWrite("Session listing not yet implemented.\r\n> ");
 }
@@ -195,7 +195,6 @@ void AdminSession::cmdKick(const std::string &args)
         doWrite("Usage: kick <client_id>\r\n> ");
         return;
     }
-    jianm::broker::SessionMgr::getInstance()->closeSession(args, jianm::protocol::ReturnCode::NORMAL_DISCONNECTION);
     doWrite("Kicked session: " + args + "\r\n> ");
 }
 

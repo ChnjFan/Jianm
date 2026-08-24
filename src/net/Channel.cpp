@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:55:06
+ * Last Modified: 2026-08-24 14:31:13
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -37,17 +37,14 @@
 #include "common/ConfigMgr.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
-#include "protocol/Packet.hpp"
-#include "protocol/MessageMgr.hpp"
-#include "protocol/mqtt.h"
+#include "protocol/Codec.hpp"
 
 using namespace jianm::net;
 
 static const int DEFAULT_BUFFER_SIZE = 1024;
-static const int MAX_SEND_QUEUE = 1024;
 
-Channel::Channel(asio::io_context &io_context)
-    : socket_(io_context)
+Channel::Channel(std::shared_ptr<jianm::broker::ITransport> transport)
+    : transport_(transport)
 {
     int configSize = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["max_receive_size"])
                          .value_or(DEFAULT_BUFFER_SIZE);
@@ -57,51 +54,65 @@ Channel::Channel(asio::io_context &io_context)
 Channel::~Channel()
 {
     close();
-    JM_LOG_TRACE("TCP channel close success, peer {}:{}", getPeerIp(), getPeerPort());
+    JM_LOG_TRACE("TCP channel close success, peer {}", peer_);
 }
 
 void Channel::start()
 {
-    peerEndpoint_ = socket_.remote_endpoint();
-    JM_LOG_TRACE("TCP channel accept success, peer {}:{}, start read head",
-                 getPeerIp(), getPeerPort());
+    auto endpoint = transport_->getSocket().remote_endpoint();
+    peer_ = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+    JM_LOG_TRACE("TCP channel accept success, peer {}, start read head", peer_);
 
     asyncReadHead();
 }
 
 void Channel::close()
 {
-    std::lock_guard<std::mutex> lock(mtx_);
-    closing_ = true;
-    // If nothing is pending, close immediately; otherwise asyncSend callback
-    // will close the socket after the queue drains.
-    if (sendList_.empty()) {
-        socket_.close();
-    }
+    transport_->close();
 }
 
-void Channel::asyncSend(std::vector<uint8_t>&& buffer)
+void Channel::requestClose(const std::string &reason)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
-    const size_t sendSize = sendList_.size();
-    if (sendSize > MAX_SEND_QUEUE) {   // suppression
-        return;
+    auto self = shared_from_this();
+
+    if (on_close) {
+        on_close(self, reason);
     }
 
-    sendList_.push(std::move(buffer));
-    if (sendSize > 0) {
-        return;
+    close();
+}
+
+bool Channel::asyncSend(const PacketPtr &packet)
+{
+    if (closing_) return false;
+    try
+    {
+        std::vector<uint8_t> buffer;
+        if (jianm::protocol::Codec::encode(packet, buffer)) {
+            transport_->asyncSend(std::move(buffer));
+        }
     }
-    asyncSend();
+    catch(const std::exception& e)
+    {
+        requestClose("write error");
+    }
+    return true;
+}
+
+void Channel::setKeepalive(uint16_t seconds)
+{
+    keepalive_ = seconds;
+    last_read_ = clock::now();
 }
 
 void Channel::asyncReadHead()
 {
     auto self = shared_from_this();
     // Read the fixed header byte and first remaining length byte (offset 0..2)
-    asyncReadSome(0, 2, [this, self](const asio::error_code& ec) {
+    transport_->asyncReadSome(buffer_, 0, 2,
+        [this, self](const asio::error_code& ec) {
         if (ec) {
-            JM_LOG_TRACE("Channel {}:{} closed: {}", getPeerIp(), getPeerPort(), ec.message());
+            JM_LOG_TRACE("Channel {} closed: {}", peer_, ec.message());
             return;
         }
         asyncRemainingLen(2);
@@ -115,10 +126,11 @@ void Channel::asyncRemainingLen(size_t offset)
     // Check the last byte read for the continuation bit (0x80)
     if (buffer_[offset - 1] & 0x80) {
         // there are more bytes to read for the remaining length
-        asyncReadSome(offset, offset + 1, [this, self, offset](const asio::error_code& ec) {
+        transport_->asyncReadSome(buffer_, offset, offset + 1,
+            [this, self, offset](const asio::error_code& ec) {
             if (ec) {
-                JM_LOG_ERROR("Channel {}:{} is reading remaining len closed: {}", getPeerIp(), getPeerPort(), ec.message());
-                close();
+                JM_LOG_ERROR("Channel {} is reading remaining len closed: {}", peer_, ec.message());
+                return;
             }
             asyncRemainingLen(offset + 1);
         });
@@ -126,8 +138,8 @@ void Channel::asyncRemainingLen(size_t offset)
     }
 
     size_t rlIndex = 1;  // remaining length starts after the first fixed header byte
-    int remainingLength = static_cast<int>(protocol::Packet::decodeRemainingLength(buffer_, rlIndex));
-    const protocol::Header header = { .byte = buffer_[0] };
+    int remainingLength = static_cast<int>(protocol::Codec::decodeRemainingLength(buffer_, rlIndex));
+    const jianm::broker::Header header = { .byte = buffer_[0] };
     JM_LOG_TRACE("Received packet header: type={} qos={} dup={} retain={} remaininglen={}",
         static_cast<int>(header.bits.type),
         static_cast<int>(header.bits.qos),
@@ -143,60 +155,24 @@ void Channel::asyncReadPayload(size_t offset, size_t size)
 {
     auto self = shared_from_this();
     // Read payload at the given offset, preserving bytes already in buffer
-    asyncReadSome(offset, size + offset, [this, self](const asio::error_code& ec) {
+    transport_->asyncReadSome(buffer_, offset, size + offset,
+        [this, self](const asio::error_code& ec) {
         if (ec) {
-            JM_LOG_ERROR("Channel {}:{} is reading payload closed: {}", getPeerIp(), getPeerPort(), ec.message());
+            JM_LOG_ERROR("Channel {} is reading payload closed: {}", peer_, ec.message());
             close();
             return;
         }
-        // delivery data to protocol
-        protocol::MessageMgr::getInstance()->messageHandle(self, buffer_);
-        buffer_.clear();
 
-        asyncReadHead();
+        try {
+            const jianm::protocol::PacketPtr pack = jianm::protocol::Codec::decode(buffer_);
+            if (pack && on_packet) {
+                on_packet(self, pack);
+            }
+            buffer_.clear();
+            asyncReadHead();
+        }
+        catch(const std::exception& e) {
+            requestClose(e.what());
+        }
     });
-}
-
-
-void Channel::asyncReadSome(const size_t readSize, const size_t totalSize, const ReadFinishedCallback &callback)
-{
-    auto self = shared_from_this();
-
-    // Ensure the vector's logical size covers the region we want to read into.
-    // Use the larger of current size or (readSize + totalSize) to preserve
-    // already-read bytes (e.g. header + remaining length before payload).
-    if (buffer_.size() < readSize + totalSize) {
-        buffer_.resize(readSize + totalSize);
-    }
-
-    socket_.async_read_some(asio::buffer(buffer_.data() + readSize, totalSize - readSize),
-        [this, self, readSize, totalSize, callback](asio::error_code ec, std::size_t bytes_transferred) {
-            if (ec || readSize + bytes_transferred >= totalSize) {
-                callback(ec);
-                return;
-            }
-
-            asyncReadSome(readSize + bytes_transferred, totalSize, callback);
-        });
-}
-
-void Channel::asyncSend()
-{
-    const auto& buffer = sendList_.front();
-    auto self = shared_from_this();
-    asio::async_write(socket_, asio::buffer(buffer),
-        [self, this](const asio::error_code& error, [[maybe_unused]] size_t bytes_transfer) {
-            if (error) {
-                close();
-                return;
-            }
-
-            std::lock_guard<std::mutex> lock(mtx_);
-            sendList_.pop();
-            if (!sendList_.empty()) {
-                asyncSend();
-            } else if (closing_) {
-                socket_.close();
-            }
-        });
 }

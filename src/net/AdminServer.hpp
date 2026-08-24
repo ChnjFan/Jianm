@@ -4,7 +4,7 @@
  * Created Date: 2026-08-21 22:38:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:54:30
+ * Last Modified: 2026-08-23 14:15:03
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -45,14 +45,15 @@ using tcp = asio::ip::tcp;
 
 class AdminServer : public std::enable_shared_from_this<AdminServer> {
 public:
-    AdminServer(asio::io_context &io_context, unsigned short port);
+    AdminServer(unsigned short port);
     void start();
+    void stop();
 
 private:
     void doAccept();
 
+    asio::io_context io_context_;
     tcp::acceptor acceptor_;
-    asio::io_context& ioContext_;
 };
 
 } // namespace net
