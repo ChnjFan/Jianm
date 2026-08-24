@@ -90,7 +90,7 @@ PacketPtr jianm::protocol::Codec::decode(const std::vector<uint8_t> &buffer)
         return nullptr;
     }
 
-    jianm::broker::Header header{ .byte = buffer[0] };
+    Header header{ .byte = buffer[0] };
     return deserializePacket(header.bits.type, buffer);
 }
 
@@ -222,11 +222,11 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
     }
 
     size_t index = 0;
-    PacketPtr packet = std::make_shared<jianm::broker::Packet>();
-    packet->type = jianm::broker::PacketType::Connect;
-    auto& cp = packet->body.emplace<jianm::broker::ConnectPacket>();
+    PacketPtr packet = std::make_shared<Packet>();
+    packet->type = PacketType::Connect;
+    auto& cp = packet->body.emplace<ConnectPacket>();
     
-    jianm::broker::Header header;
+    Header header;
     header.byte = readByte(buffer, index);
     if ((header.byte & 0x0f) != 0) {
         // The CONNECT Packet Fixed Header Flags (bit 3‑0 of byte1) are Reserved and MUST be 0.
@@ -259,7 +259,7 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
 
     cp.clean_session = cp.bits.clean_session;
     cp.has_will = cp.bits.will;
-    cp.will_qos = static_cast<jianm::broker::Qos>(cp.bits.will_qos);
+    cp.will_qos = static_cast<Qos>(cp.bits.will_qos);
     cp.will_retain = cp.bits.will_retain;
     if (cp.has_will && cp.bits.will_qos == 3) {
         throw std::runtime_error("CONNECT protocol will qos is 3");
@@ -328,10 +328,10 @@ bool jianm::protocol::Codec::serializeConnack(PacketPtr pkt, std::vector<uint8_t
 {
     // CONNACK has a fixed length of 4 bytes
     buffer.reserve(4);
-    buffer.push_back(jianm::broker::MQTT_CONNACK_BYTE);
+    buffer.push_back(MQTT_CONNACK_BYTE);
     // [MQTT-3.2.1]For the CONNACK Packet this has the value 2
     buffer.push_back(2);
-    const auto& ca = std::get<jianm::broker::ConnackPacket>(pkt->body);
+    const auto& ca = std::get<ConnackPacket>(pkt->body);
     buffer.push_back(ca.session_present ? 1 : 0);
     buffer.push_back(static_cast<uint8_t>(ca.return_code));
 

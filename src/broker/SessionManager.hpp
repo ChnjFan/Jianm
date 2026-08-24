@@ -67,7 +67,7 @@ public:
     void removeChannel(const jianm::net::ChannelPtr& channel);
 
     bool sessionExists(const std::string& client_id) const;
-    std::shared_ptr<Session> getSession(const std::string& client_id, bool clean);
+    std::shared_ptr<jianm::Session> getSession(const std::string& client_id, bool clean);
 
     /// Number of active channel connections (by_channel_ size)
     size_t connectionCount() const;
@@ -75,9 +75,9 @@ public:
     size_t sessionCount() const;
 
 private:
-    void dropSession(const std::shared_ptr<Session>& session);
+    void dropSession(const std::shared_ptr<jianm::Session>& session);
 
-    std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
+    std::unordered_map<std::string, std::shared_ptr<jianm::Session>> sessions_;
     std::unordered_map<jianm::net::Channel*, std::shared_ptr<ClientContext>> by_channel_;
     std::unordered_map<std::string, std::shared_ptr<ClientContext>> by_id_;
 };

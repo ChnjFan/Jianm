@@ -43,15 +43,15 @@ namespace jianm {
 namespace net {
 
 class TcpTransport 
-    : public jianm::broker::ITransport
+    : public ITransport
     , public std::enable_shared_from_this<TcpTransport>
 {
 public:
     explicit TcpTransport(asio::io_context &ctx);
     ~TcpTransport() override { close(); }
 
-    void asyncReadSome(std::vector<uint8_t>& buffer, const size_t readSize, const size_t totalSize,
-             const jianm::broker::ReadFinishedCallback& callback) override;
+    void asyncReadSome(std::vector<uint8_t>& buffer, size_t readSize, size_t totalSize,
+             const ReadFinishedCallback& callback) override;
     void asyncSend(std::vector<uint8_t>&& buffer) override;
     void close() override;
 

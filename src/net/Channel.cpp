@@ -43,7 +43,7 @@ using namespace jianm::net;
 
 static const int DEFAULT_BUFFER_SIZE = 1024;
 
-Channel::Channel(std::shared_ptr<jianm::broker::ITransport> transport)
+Channel::Channel(std::shared_ptr<jianm::ITransport> transport)
     : transport_(transport)
 {
     int configSize = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["max_receive_size"])
@@ -140,7 +140,7 @@ void Channel::asyncRemainingLen(size_t offset)
 
     size_t rlIndex = 1;  // remaining length starts after the first fixed header byte
     int remainingLength = static_cast<int>(protocol::Codec::decodeRemainingLength(buffer_, rlIndex));
-    const jianm::broker::Header header = { .byte = buffer_[0] };
+    const jianm::Header header = { .byte = buffer_[0] };
     JM_LOG_TRACE("Received packet header: type={} qos={} dup={} retain={} remaininglen={}",
         static_cast<int>(header.bits.type),
         static_cast<int>(header.bits.qos),

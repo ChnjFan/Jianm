@@ -124,14 +124,14 @@ size_t SessionManager::sessionCount() const
     return sessions_.size();
 }
 
-std::shared_ptr<Session> SessionManager::getSession(const std::string &client_id, bool clean)
+std::shared_ptr<jianm::Session> SessionManager::getSession(const std::string &client_id, bool clean)
 {
     if (clean) {
         auto it = sessions_.find(client_id);
         if (it != sessions_.end()) {
             dropSession(it->second);
         }
-        auto session = std::make_shared<Session>();
+        auto session = std::make_shared<jianm::Session>();
         session->client_id = client_id;
         session->clean_session = true;
         sessions_.emplace(client_id, session);
@@ -143,14 +143,14 @@ std::shared_ptr<Session> SessionManager::getSession(const std::string &client_id
         return it->second;
     }
 
-    auto session = std::make_shared<Session>();
+    auto session = std::make_shared<jianm::Session>();
     session->client_id = client_id;
     session->clean_session = false;
     sessions_.emplace(client_id, session);
     return session;
 }
 
-void SessionManager::dropSession(const std::shared_ptr<Session> &session)
+void SessionManager::dropSession(const std::shared_ptr<jianm::Session> &session)
 {
     for (const auto& sub : session->subscriptions) {
         // TODO: Clear the session subscription list

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:50:07
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 16:51:50
+ * Last Modified: 2026-08-24 17:56:28
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -39,7 +39,6 @@
 #include <cstdint>
 
 namespace jianm {
-namespace broker {
 
 /// @brief Transport Layer Protocol Type
 enum class TransportType : uint8_t {
@@ -48,5 +47,4 @@ enum class TransportType : uint8_t {
     websocket = 3,
 };
 
-}  // namespace broker
-}  // namespace mqtt
+}  // namespace jianm

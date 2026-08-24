@@ -45,7 +45,7 @@ TcpTransport::TcpTransport(asio::io_context &ctx)
 }
 
 void TcpTransport::asyncReadSome(std::vector<uint8_t> &buffer, const size_t readSize, const size_t totalSize,
-        const jianm::broker::ReadFinishedCallback &callback)
+        const ReadFinishedCallback &callback)
 {
     auto self = shared_from_this();
 

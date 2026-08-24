@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:40:31
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 13:49:15
+ * Last Modified: 2026-08-24 17:55:50
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -41,7 +41,6 @@
 #include <asio.hpp>
 
 namespace jianm {
-namespace broker {
 
 typedef std::function<void(const asio::error_code& ec)> ReadFinishedCallback;
 
@@ -64,5 +63,4 @@ public:
     virtual asio::ip::tcp::socket& getSocket() = 0;
 };
 
-} // namespace broker 
 } // namespace jian 

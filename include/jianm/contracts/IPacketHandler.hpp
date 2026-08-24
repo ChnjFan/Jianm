@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:45:38
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 12:05:38
+ * Last Modified: 2026-08-24 17:56:56
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -38,14 +38,11 @@
 #include "jianm/model/Packet.hpp"
 
 namespace jianm {
-namespace broker {
-
-struct BrokerServices;
-struct ClientContext;
+namespace broker { struct BrokerServices; struct ClientContext; }
 
 /**
  * @brief Message Processor Abstraction
- * 
+ *
  * ConnectHandler / PublishHandler, etc., are derived based on the Template Method Pattern
  */
 class IPacketHandler
@@ -54,10 +51,10 @@ public:
     IPacketHandler() = default;
     virtual ~IPacketHandler() = default;
 
-    virtual void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
+    virtual void handle(broker::BrokerServices& service,
+        std::shared_ptr<broker::ClientContext> &client,
         const std::shared_ptr<Packet> &pkt) = 0;
 };
 
 
-} // namespace broker 
-} // namespace jian 
+} // namespace jianm

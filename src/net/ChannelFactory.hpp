@@ -53,7 +53,7 @@ class ChannelFactory
 {
 public:
     struct Config {
-        jianm::broker::TransportType type;
+        TransportType type;
 
         std::string ssl_cert_path;
         std::string ssl_key_path;

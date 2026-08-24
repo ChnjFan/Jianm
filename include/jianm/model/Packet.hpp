@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:31:18
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 12:53:21
+ * Last Modified: 2026-08-24 17:56:44
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -43,7 +43,6 @@
 #include <vector>
 
 namespace jianm {
-namespace broker {
 
 #define JM_MQTT_3_1_1_VERSION_LEVEL     (4)
 
@@ -169,5 +168,4 @@ union Header {
     } bits;
 };
 
-}  // namespace broker
-}  // namespace mqtt
+}  // namespace jianm

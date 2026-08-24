@@ -50,11 +50,11 @@ using time_point = std::chrono::time_point<clock>;
 
 class Channel;
 using ChannelPtr = std::shared_ptr<Channel>;
-using PacketPtr = std::shared_ptr<jianm::broker::Packet>;
+using PacketPtr = std::shared_ptr<Packet>;
 
 class Channel : public std::enable_shared_from_this<Channel> {
 public:
-    explicit Channel(std::shared_ptr<jianm::broker::ITransport> transport);
+    explicit Channel(std::shared_ptr<ITransport> transport);
 
     ~Channel();
 
@@ -80,7 +80,7 @@ private:
     void asyncReadPayload(size_t offset, size_t size);
 
 
-    std::shared_ptr<jianm::broker::ITransport> transport_;
+    std::shared_ptr<ITransport> transport_;
 
     bool closing_ = false;
     [[maybe_unused]] bool close_posted_ = false;

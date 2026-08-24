@@ -43,7 +43,7 @@
 namespace jianm {
 namespace protocol {
 
-using PacketPtr = std::shared_ptr<jianm::broker::Packet>;
+using PacketPtr = std::shared_ptr<Packet>;
 using DeserializeFunc = std::function<PacketPtr (const std::vector<uint8_t>& buffer)>;
 using SerializeFunc = std::function<bool (PacketPtr, std::vector<uint8_t>& buffer)>;
 

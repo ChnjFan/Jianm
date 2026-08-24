@@ -68,7 +68,7 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         reject_out->type = PacketType::Connack;
         // Specification requirement [MQTT-3.2.2.2]:
         // If the return code is non-zero, Session Present MUST be set to 0.
-        auto& cp = reject_out->body.emplace<jianm::broker::ConnackPacket>();
+        auto& cp = reject_out->body.emplace<ConnackPacket>();
         cp.session_present = false;
         cp.return_code = rc;
         auto channel = client->channel.lock();
@@ -129,7 +129,7 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
 
     auto out = std::make_shared<Packet>();
     out->type = PacketType::Connack;
-    auto& out_cp = out->body.emplace<jianm::broker::ConnackPacket>();
+    auto& out_cp = out->body.emplace<ConnackPacket>();
     out_cp.session_present = existed;
     out_cp.return_code = ConnackReturnCode::accepted;
     channel->asyncSend(out);

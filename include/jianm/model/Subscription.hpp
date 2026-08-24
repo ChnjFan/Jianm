@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:14:23
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 16:15:31
+ * Last Modified: 2026-08-24 17:56:22
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -40,7 +40,6 @@
 #include "jianm/model/Qos.hpp"
 
 namespace jianm {
-namespace broker {
 
 struct Subscription
 {
@@ -49,5 +48,4 @@ struct Subscription
 };
 
 
-}  // namespace broker
-}  // namespace mqtt
+}  // namespace jianm

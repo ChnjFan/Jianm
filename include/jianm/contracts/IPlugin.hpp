@@ -1,10 +1,10 @@
 /*
- * File: /Qos.hpp
- * Project: model
- * Created Date: 2026-08-23 15:32:24
+ * File: /IPlugin.hpp
+ * Project: contracts
+ * Created Date: 2026-08-24 17:54:06
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 17:56:40
+ * Last Modified: 2026-08-24 17:55:45
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,15 +35,12 @@
 
 #pragma once
 
-#include <cstdint>
+#include "jianm/model/Packet.hpp"
+
+#include <string>
+#include <string_view>
 
 namespace jianm {
+    
+} // namespace jianm
 
-/// @brief MQTT 3.1.1 QoS Levels
-enum class Qos : uint8_t {
-    AtMostOnce = 0,   // QoS 0: At most once
-    AtLeastOnce = 1,  // QoS 1: At least once
-    ExactlyOnce = 2,  // QoS 2: Exactly Once
-};
-
-}  // namespace jianm

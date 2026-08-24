@@ -77,11 +77,11 @@ ChannelFactory::Impl::Impl(Config cfg, asio::io_context &ctx)
 
 std::shared_ptr<Channel> ChannelFactory::Impl::create()
 {
-    std::shared_ptr<jianm::broker::ITransport> transport;
+    std::shared_ptr<ITransport> transport;
 
     switch (config_.type)
     {
-    case jianm::broker::TransportType::ssl:
+    case TransportType::ssl:
 #ifdef HAS_OPENSSL
         if (!ssl_ctx_) {
             JM_LOG_WARN("TLS connection rejected: no SSL context configured");
@@ -95,7 +95,7 @@ std::shared_ptr<Channel> ChannelFactory::Impl::create()
         return nullptr;
 #endif  
         break;
-    case jianm::broker::TransportType::tcp:
+    case TransportType::tcp:
         [[fallthrough]];
     default:
         transport = std::make_shared<TcpTransport>(io_context_);

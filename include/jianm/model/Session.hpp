@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:34:40
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 16:18:43
+ * Last Modified: 2026-08-24 17:56:34
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -42,7 +42,6 @@
 #include "jianm/model/Subscription.hpp"
 
 namespace jianm {
-namespace broker {
 
 /**
  * @brief Session
@@ -56,5 +55,4 @@ struct Session
     std::vector<Subscription> subscriptions;
 };
 
-}  // namespace broker
-}  // namespace mqtt
+}  // namespace jianm
