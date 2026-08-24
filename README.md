@@ -10,15 +10,24 @@ Jianm is a minimal, functional MQTT broker inspired by [mosquitto](https://githu
 
 ```
 Jianm/
-├── CMakeLists.txt          # Top-level CMake build config
+├── CMakeLists.txt          # Top-level CMake build configuration
 ├── conf/
 │   └── jianm.conf          # Server configuration file
+├── include/
+│   └── jianm/              # Public headers
+│       ├── api/            # Public API (BrokerEngine)
+│       ├── contracts/      # Interface contracts (ITransport, IPacketHandler, IPlugin)
+│       └── model/          # Data models (Packet, Session, Subscription)
 ├── src/
 │   ├── main.cpp            # Entry point
-│   ├── common/             # Common modules (config, logging, utils)
-│   ├── net/                # Network layer (Server, Channel, AdminServer)
-│   ├── protocol/           # MQTT protocol parsing (packets, messages)
-│   └── session/            # Session management
+│   ├── broker/             # Broker core (engine, handlers, session management)
+│   ├── common/             # Common modules (config, logging, utilities)
+│   ├── management/         # Management module (AdminServer, AdminSession)
+│   ├── net/                # Network layer (Channel, ChannelFactory, TcpTransport)
+│   ├── plugin/             # Plugin system (HookRegistry)
+│   └── protocol/           # MQTT protocol codec (Codec)
+├── plugins/
+│   └── example/            # Example plugins
 ├── test/                   # Tests (GoogleTest-based)
 ├── thirdparty/
 │   └── spdlog/             # Logging library (header-only mode)
@@ -27,15 +36,15 @@ Jianm/
 
 ## Build
 
-### Install Dependencies
+### Prerequisites
 
-| Dependency    | Version | Notes                                    |
+| Dependency    | Version | Description                              |
 | ------------- | ------- | ---------------------------------------- |
 | CMake         | ≥ 3.16  | Build system                             |
-| Asio          | ≥ 1.18  | Cross-platform C++ networking (standalone)|
-| C++ Compiler  | C++17   | C++17-capable compiler                   |
+| Asio          | ≥ 1.18  | Cross-platform C++ networking library    |
+| C++ Compiler  | C++17   | Compiler with C++17 support              |
 | spdlog        | —       | Logging library (bundled, no install)    |
-| GoogleTest    | v1.14.0 | Testing framework (only for tests)       |
+| GoogleTest    | v1.14.0 | Test framework (only needed for tests)   |
 
 #### macOS
 
@@ -43,7 +52,7 @@ Jianm/
 # Install CMake and Asio
 brew install cmake asio
 
-# C++ compiler: install Xcode Command Line Tools (prompts automatically on first use)
+# C++ compiler: install Xcode Command Line Tools (auto-prompted on first use)
 xcode-select --install
 ```
 
@@ -68,10 +77,10 @@ sudo dnf install -y gcc gcc-c++ make cmake
 sudo dnf install -y asio-devel
 ```
 
-> **spdlog** is bundled in the project's `thirdparty/` directory — no installation needed.  
-> **GoogleTest** is automatically downloaded by CMake when building tests — no manual installation needed.
+> **spdlog** is bundled in the `thirdparty/` directory — no separate installation needed.
+> **GoogleTest** is automatically downloaded by CMake when building tests.
 
-### Quick Start
+### Quick Build
 
 ```bash
 cd Jianm
@@ -79,20 +88,20 @@ cmake -S . -B build
 cmake --build build
 ```
 
-After the build completes, the executable and config file are in `build/bin/`:
+After building, the executable and configuration file are generated in `build/bin/`:
 
 ```
 build/bin/
-├── jianm          # MQTT broker executable
-└── jianm.conf     # Config file copy
+├── jianm          # MQTT Broker executable
+└── jianm.conf     # Configuration file copy
 ```
 
 ### Build Options
 
-| Option              | Default | Notes                                |
-| ------------------- | ------- | ------------------------------------ |
-| `CMAKE_BUILD_TYPE`  | Release | Build type (Debug/Release/...)       |
-| `JIANM_BUILD_TESTS` | ON      | Whether to build the test suite      |
+| Option              | Default | Description                        |
+| ------------------- | ------- | ---------------------------------- |
+| `CMAKE_BUILD_TYPE`  | Release | Build type (Debug/Release/...)     |
+| `JIANM_BUILD_TESTS` | ON      | Whether to build the test suite    |
 
 Example: build debug version without tests
 
@@ -108,7 +117,7 @@ cd build
 ctest
 ```
 
-Or run the test binary directly:
+Or run the test executable directly:
 
 ```bash
 ./build/bin/jianm_smoke_test
@@ -125,11 +134,11 @@ Or run the test binary directly:
 The server listens on two ports:
 
 - **1883** — MQTT client connection port (standard MQTT port)
-- **10000** — Admin console port (telnet)
+- **10000** — Admin management console port (telnet)
 
 ### Connect an MQTT Client
 
-Use any MQTT client tool (e.g. `mosquitto_pub`/`mosquitto_sub`):
+Use any MQTT client tool (e.g., `mosquitto_pub`/`mosquitto_sub`) to connect:
 
 ```bash
 # Subscribe to a topic
@@ -139,7 +148,7 @@ mosquitto_sub -h localhost -p 1883 -t "test/topic"
 mosquitto_pub -h localhost -p 1883 -t "test/topic" -m "Hello Jianm"
 ```
 
-### Admin Console
+### Management Console
 
 Connect via telnet:
 
@@ -149,7 +158,7 @@ telnet localhost 10000
 
 ## Configuration
 
-Server configuration is managed through `conf/jianm.conf`. It is automatically copied to the executable's directory during the build.
+Server configuration is managed through the `conf/jianm.conf` file. It is automatically copied to the executable's directory during build.
 
 ```ini
 # Log level (trace / debug / info / warn / error / critical)
@@ -161,72 +170,102 @@ port = 1883
 # Admin console port (default 10000)
 admin_port = 10000
 
-# Per-connection receive buffer size in bytes (default 1024)
+# Receive buffer size per connection (bytes, default 1024)
 max_receive_size = 1024
 
 # Allow anonymous connections (true = allowed)
 allow_anonymous = true
 ```
 
-If a config key is not set, the built-in default is used. Restart the server after modifying the config.
+If a configuration item is not set, the built-in default is used. A server restart is required for changes to take effect.
 
 ## Protocol Support
 
-Based on the MQTT 3.1.1 protocol (OASIS Standard). Current implementation progress:
+Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 
 ### Control Packets
 
-| Packet Type | Direction | Status | Description |
-| ----------- | --------- | :----: | ----------- |
-| CONNECT     | Client → Server | ✅ | Client connection request |
-| CONNACK     | Server → Client | ✅ | Connection acknowledgment |
-| PUBLISH     | Client ↔ Server | ❌ | Publish message |
-| PUBACK      | Client ↔ Server | ❌ | QoS 1 publish acknowledgment |
-| PUBREC      | Client ↔ Server | ❌ | QoS 2 publish received |
-| PUBREL      | Client ↔ Server | ❌ | QoS 2 publish release |
-| PUBCOMP     | Client ↔ Server | ❌ | QoS 2 publish complete |
-| SUBSCRIBE   | Client → Server | ❌ | Subscribe to topic |
-| SUBACK      | Server → Client | ❌ | Subscribe acknowledgment |
-| UNSUBSCRIBE | Client → Server | ❌ | Unsubscribe from topic |
-| UNSUBACK    | Server → Client | ❌ | Unsubscribe acknowledgment |
-| PINGREQ     | Client → Server | ❌ | Ping request |
-| PINGRESP    | Server → Client | ❌ | Ping response |
-| DISCONNECT  | Client → Server | ❌ | Disconnect |
+| Packet Type | Direction       | Status | Description |
+| ----------- | --------------- | :----: | ----------- |
+| CONNECT     | Client → Server |   ✅   | Client connection request |
+| CONNACK     | Server → Client |   ✅   | Connection acknowledgment |
+| PUBLISH     | Client ↔ Server |   ❌   | Publish message |
+| PUBACK      | Client ↔ Server |   ❌   | QoS 1 publish acknowledgment |
+| PUBREC      | Client ↔ Server |   ❌   | QoS 2 publish received |
+| PUBREL      | Client ↔ Server |   ❌   | QoS 2 publish release |
+| PUBCOMP     | Client ↔ Server |   ❌   | QoS 2 publish complete |
+| SUBSCRIBE   | Client → Server |   ❌   | Subscribe to topic |
+| SUBACK      | Server → Client |   ❌   | Subscribe acknowledgment |
+| UNSUBSCRIBE | Client → Server |   ❌   | Unsubscribe |
+| UNSUBACK    | Server → Client |   ❌   | Unsubscribe acknowledgment |
+| PINGREQ     | Client → Server |   ❌   | Ping request |
+| PINGRESP    | Server → Client |   ❌   | Ping response |
+| DISCONNECT  | Client → Server |   ❌   | Disconnect |
 
-> ✅ Implemented　❌ Not yet implemented
+> ✅ Implemented　❌ Pending
 
 ### Connection Features
 
-| Feature | Status | Description |
-| ------- | :----: | ----------- |
-| Clean Session | ✅ | Clean session flag, controls session state clearing and restoration |
-| Session Present | ✅ | Correctly calculated based on CleanSession and existing session state |
-| Will Flag | ⚠️ | CONNECT packet parsing and validation supported, will message publishing not implemented |
-| Username/Password | ⚠️ | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; authentication is a stub (always returns true) |
-| Keep Alive | ✅ | Automatic disconnect at 1.5× KeepAlive timeout |
-| ClientID Validation | ✅ | Length ≤ 23 characters, UTF-8 encoding validation |
-| UTF-8 Validation | ✅ | UTF-8 encoding validation for ClientID, Username, and Will Topic |
-| Duplicate ClientID | ✅ | Old connection disconnected when same ClientID reconnects (MQTT-3.1.4-2) |
+| Feature          | Status | Description |
+| ---------------- | :----: | ----------- |
+| Clean Session    |   ✅   | Clean session flag, controls session state clearing and restoration |
+| Session Present  |   ✅   | Correctly calculated based on CleanSession and existing session state |
+| Will Flag        |   ⚠️   | CONNECT packet parsing and validation supported; will message publishing not implemented |
+| Username/Password | ⚠️  | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; auth logic is a stub (always returns true) |
+| Keep Alive       |   ✅   | 1.5× KeepAlive timeout auto-disconnect mechanism |
+| ClientID Validation | ✅ | Length ≤ 23 chars, UTF-8 encoding validation |
+| UTF-8 Validation |   ✅   | UTF-8 validation for ClientID, Username, Will Topic |
+| Duplicate ClientID | ✅ | Same ClientID reconnect disconnects old connection (MQTT-3.1.4-2) |
 | Duplicate CONNECT | ✅ | Second CONNECT on same connection treated as protocol violation (MQTT-3.1.0-2) |
-| Admin Console | ✅ | Telnet on port 10000, supports help/status/sessions/kick/quit commands |
-| Log Output | ✅ | Console and file output targets, configurable log level |
+| Admin Console    |   ✅   | Telnet port 10000, supports help/status/sessions/kick/quit commands |
+| Logging          |   ✅   | Console and file output targets, configurable log level |
+| Plugin System    |   ✅   | Observer pattern based on IPlugin interface, supports event hook extensions |
 
 > ✅ Implemented　⚠️ Partially implemented　❌ Not implemented
 
-### Messaging & Subscriptions (Not yet implemented)
+### Messaging & Subscriptions (Pending)
 
 | Module | Feature | Status | Description |
 | ------ | ------- | :----: | ----------- |
-| Publish | PUBLISH parsing & routing | ❌ | Route published messages to subscribers |
-| Publish | Retained messages | ❌ | Store last retained message for new subscribers |
-| Publish | QoS 1 flow | ❌ | AT_LEAST_ONCE delivery + PUBACK |
-| Publish | QoS 2 flow | ❌ | EXACTLY_ONCE four-step handshake |
-| Subscribe | SUBSCRIBE/SUBACK | ❌ | Subscribe to topics + granted QoS return |
-| Subscribe | UNSUBSCRIBE/UNSUBACK | ❌ | Unsubscribe from topics |
+| Publish | PUBLISH packet parsing & routing | ❌ | Message publishing to subscribers |
+| Publish | Retained message storage | ❌ | Retain last message for new subscribers |
+| Publish | QoS 1 message flow | ❌ | AT_LEAST_ONCE delivery + PUBACK |
+| Publish | QoS 2 message flow | ❌ | EXACTLY_ONCE four-step handshake |
+| Subscribe | SUBSCRIBE/SUBACK | ❌ | Topic subscription + granted QoS response |
+| Subscribe | UNSUBSCRIBE/UNSUBACK | ❌ | Unsubscribe |
 | Subscribe | Topic wildcard matching | ❌ | `+` single-level, `#` multi-level wildcards |
-| Session | Session state persistence | ❌ | Persist subscriptions and pending messages for CleanSession=0 |
-| Session | Offline message queue | ❌ | Buffer offline QoS 1/2 messages for CleanSession=0 |
-| Heartbeat | PINGREQ/PINGRESP | ❌ | Client ping request and server response |
-| Disconnect | DISCONNECT handling | ❌ | Graceful client disconnect |
-| Will | Will Message delivery | ❌ | Publish will message to subscribers on abnormal disconnect |
-| Auth | Real authentication | ❌ | Currently a stub (always returns true) |
+| Session | Session state persistence | ❌ | Save subscriptions and pending messages when CleanSession=0 |
+| Session | Offline message queue | ❌ | Cache offline QoS 1/2 messages when CleanSession=0 |
+| Heartbeat | PINGREQ/PINGRESP | ❌ | Client heartbeat request and server response |
+| Disconnect | DISCONNECT handling | ❌ | Graceful client disconnection |
+| Will | Will Message publishing | ❌ | Publish will message to subscribers on abnormal disconnect |
+| Auth | Real authentication logic | ❌ | Currently a stub (always returns true) |
+
+## Plugin System
+
+Jianm provides a plugin mechanism based on the `IPlugin` interface, allowing custom logic to be inserted at event points such as client connect, message receive, and disconnect.
+
+### Plugin Interface
+
+```cpp
+class IPlugin {
+    virtual std::string_view name() const = 0;
+    virtual void onClientConnected(const std::string& client_id, const std::string& username) = 0;
+    virtual bool onMessageIn(PublishPacket& msg, const std::string& client_id) = 0;
+    virtual void onClientDisconnected(const std::string& client_id) = 0;
+};
+```
+
+### Registering Plugins
+
+```cpp
+BrokerEngine broker(opts, ctx);
+broker.addPlugin(std::make_unique<MyPlugin>());
+broker.start();
+```
+
+### Built-in Plugins
+
+| Plugin | Description |
+| ------ | ----------- |
+| MessagePrinterPlugin | Example plugin that prints client connect/disconnect events to stdout |

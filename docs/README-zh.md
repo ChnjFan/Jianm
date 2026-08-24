@@ -11,12 +11,21 @@ Jianm/
 ├── CMakeLists.txt          # 顶层 CMake 构建配置
 ├── conf/
 │   └── jianm.conf          # 服务器配置文件
+├── include/
+│   └── jianm/              # 公共头文件
+│       ├── api/            # 对外 API（BrokerEngine）
+│       ├── contracts/      # 接口契约（ITransport、IPacketHandler、IPlugin）
+│       └── model/          # 数据模型（Packet、Session、Subscription）
 ├── src/
 │   ├── main.cpp            # 程序入口
+│   ├── broker/             # Broker 核心（引擎、处理器、会话管理）
 │   ├── common/             # 公共模块（配置、日志、工具）
-│   ├── net/                # 网络层（Server、Channel、AdminServer）
-│   ├── protocol/           # MQTT 协议解析（报文、消息）
-│   └── session/            # 会话管理
+│   ├── management/         # 管理模块（AdminServer、AdminSession）
+│   ├── net/                # 网络层（Channel、ChannelFactory、TcpTransport）
+│   ├── plugin/             # 插件系统（HookRegistry）
+│   └── protocol/           # MQTT 协议编解码（Codec）
+├── plugins/
+│   └── example/            # 示例插件
 ├── test/                   # 测试（基于 GoogleTest）
 ├── thirdparty/
 │   └── spdlog/             # 日志库（header-only 模式）
@@ -208,6 +217,7 @@ allow_anonymous = true
 | 重复 CONNECT     | ✅ | 同一连接重复发送 CONNECT 视为协议违规（MQTT-3.1.0-2） |
 | Admin 管理控制台 | ✅ | Telnet 10000 端口，支持 help/status/sessions/kick/quit 命令 |
 | 日志输出         | ✅ | 支持控制台和文件两种输出目标，可配置日志级别 |
+| 插件系统         | ✅ | 基于 IPlugin 接口的观察者模式，支持事件钩子扩展 |
 
 > ✅ 已实现　⚠️ 部分实现　❌ 未实现
 
@@ -228,3 +238,32 @@ allow_anonymous = true
 | 断开 | DISCONNECT 处理 | ❌ | 客户端优雅断开连接 |
 | 遗嘱 | Will Message 发布 | ❌ | 异常断开时向订阅者发布遗嘱消息 |
 | 认证 | 真实认证逻辑 | ❌ | 当前为桩函数（始终返回 true） |
+
+## 插件系统
+
+Jianm 提供了基于 `IPlugin` 接口的插件机制，允许在客户端连接、消息收发、断开等事件点插入自定义逻辑。
+
+### 插件接口
+
+```cpp
+class IPlugin {
+    virtual std::string_view name() const = 0;
+    virtual void onClientConnected(const std::string& client_id, const std::string& username) = 0;
+    virtual bool onMessageIn(PublishPacket& msg, const std::string& client_id) = 0;
+    virtual void onClientDisconnected(const std::string& client_id) = 0;
+};
+```
+
+### 注册插件
+
+```cpp
+BrokerEngine broker(opts, ctx);
+broker.addPlugin(std::make_unique<MyPlugin>());
+broker.start();
+```
+
+### 内置插件
+
+| 插件 | 说明 |
+| ---- | ---- |
+| MessagePrinterPlugin | 示例插件，将客户端连接/断开事件打印到 stdout |
