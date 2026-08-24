@@ -34,6 +34,9 @@ file(GLOB_RECURSE JIANM_LIB_SOURCES
     broker/*.cpp
     broker/*.h
     broker/*.hpp
+    management/*.cpp
+    management/*.h
+    management/*.hpp
 )
 
 if(JIANM_LIB_SOURCES)

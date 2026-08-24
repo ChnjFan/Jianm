@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 14:31:13
+ * Last Modified: 2026-08-24 17:20:34
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -113,6 +113,7 @@ void Channel::asyncReadHead()
         [this, self](const asio::error_code& ec) {
         if (ec) {
             JM_LOG_TRACE("Channel {} closed: {}", peer_, ec.message());
+            requestClose("peer closed connection");
             return;
         }
         asyncRemainingLen(2);

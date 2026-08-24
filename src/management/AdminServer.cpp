@@ -4,7 +4,7 @@
  * Created Date: 2026-08-21 22:42:03
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:15:27
+ * Last Modified: 2026-08-24 17:13:16
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -36,31 +36,47 @@
 
 #include "AdminServer.hpp"
 #include "AdminSession.hpp"
+#include "broker/Services.hpp"
 #include "common/Logger.hpp"
 
-using namespace jianm::net;
+using namespace jianm::management;
 
-AdminServer::AdminServer(unsigned short port)
+AdminServer::AdminServer(unsigned short port, broker::BrokerServices &services)
     : io_context_(1)
     , acceptor_(io_context_, tcp::endpoint(tcp::v4(), port))
+    , services_(services)
 {
+}
+
+AdminServer::~AdminServer()
+{
+    stop();
 }
 
 void AdminServer::start()
 {
+    thread_ = std::thread(&AdminServer::listen, this);
     JM_LOG_INFO("Admin server listening on port {}", acceptor_.local_endpoint().port());
-    doAccept();
 }
 
-void jianm::net::AdminServer::stop()
+void AdminServer::stop()
 {
     io_context_.stop();
+    if (thread_.joinable()) {
+        thread_.join();
+    }
+}
+
+void AdminServer::listen()
+{
+    doAccept();
+    io_context_.run();
 }
 
 void AdminServer::doAccept()
 {
     auto self = shared_from_this();
-    auto session = std::make_shared<AdminSession>(io_context_);
+    auto session = std::make_shared<AdminSession>(io_context_, services_);
     acceptor_.async_accept(session->getSocket(),
         [this, self, session](const asio::error_code &ec) {
             if (ec) {

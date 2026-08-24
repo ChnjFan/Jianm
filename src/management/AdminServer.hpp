@@ -4,7 +4,7 @@
  * Created Date: 2026-08-21 22:38:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:15:03
+ * Last Modified: 2026-08-24 16:18:28
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -39,23 +39,28 @@
 #include <asio.hpp>
 
 namespace jianm {
-namespace net {
+namespace broker { struct BrokerServices; }
+namespace management {
 
 using tcp = asio::ip::tcp;
 
 class AdminServer : public std::enable_shared_from_this<AdminServer> {
 public:
-    AdminServer(unsigned short port);
+    AdminServer(unsigned short port, broker::BrokerServices &services);
+    ~AdminServer();
     void start();
     void stop();
 
 private:
+    void listen();
     void doAccept();
 
     asio::io_context io_context_;
     tcp::acceptor acceptor_;
+    broker::BrokerServices &services_;
+    std::thread thread_;
 };
 
-} // namespace net
+} // namespace management
 } // namespace jianm
 

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 13:43:20
+ * Last Modified: 2026-08-24 16:36:51
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -43,7 +43,7 @@
 #include "common/ConfigMgr.hpp"
 #include "net/Channel.hpp"
 #include "net/ChannelFactory.hpp"
-#include "net/AdminServer.hpp"
+#include "management/AdminServer.hpp"
 #include "protocol/Codec.hpp"
 
 #include "ClientContext.hpp"
@@ -88,7 +88,7 @@ private:
     SessionManager sessions_;
     BrokerServices services_;
     PacketDispatcher dispachter_;
-    jianm::net::AdminServer admin_;
+    std::shared_ptr<jianm::management::AdminServer> admin_;
 
     bool started_ = false;
 
@@ -108,7 +108,7 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , factory_(makeFactoryConfig(opts), ctx)
     , sessions_()
     , services_(sessions_)
-    , admin_(opts.admin_port)
+    , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
     std::string logLevel = jianm::common::ConfigMgr::getInstance()["log_level"];
     if (logLevel.empty())
@@ -130,6 +130,7 @@ bool BrokerEngine::Impl::start()
 {
     if (started_) return true;
 
+    admin_->start();
     listen();
 
     started_ = true;
@@ -141,9 +142,9 @@ bool BrokerEngine::Impl::start()
 void BrokerEngine::Impl::stop()
 {
     if (!started_) return;
-    started_ = true;
+    started_ = false;
     sessions_.stop();
-    admin_.stop();
+    if (admin_) admin_->stop();
 
     // Wait for the message processing to complete
     if (worker_.joinable()) worker_.join();

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 14:38:14
+ * Last Modified: 2026-08-24 16:28:21
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -39,14 +39,16 @@
 #include <sstream>
 
 #include "AdminSession.hpp"
+#include "broker/Services.hpp"
+#include "broker/SessionManager.hpp"
 #include "common/ConfigMgr.hpp"
 #include "common/Logger.hpp"
-#include "broker/SessionManager.hpp"
 
-using namespace jianm::net;
+using namespace jianm::management;
 
-AdminSession::AdminSession(asio::io_context &io_context)
+AdminSession::AdminSession(asio::io_context &io_context, broker::BrokerServices &services)
     : socket_(io_context)
+    , services_(services)
 {
     registerCommands();
 }
@@ -62,7 +64,8 @@ void AdminSession::start()
 {
     try {
         auto ep = socket_.remote_endpoint();
-        JM_LOG_INFO("Admin connection from {}:{}", ep.address().to_string(), ep.port());
+        peer_ = ep.address().to_string() + ":" + std::to_string(ep.port());
+        JM_LOG_INFO("Admin connection from {}", peer_);
     } catch (const asio::system_error&) {
         return;
     }
@@ -163,7 +166,14 @@ void AdminSession::cmdHelp(const std::string & /*args*/)
 
 void AdminSession::cmdStatus(const std::string & /*args*/)
 {
-    doWrite("Server is running.\r\n> ");
+    std::ostringstream oss;
+    oss << "Server status:\r\n"
+        << "  Connections: " << services_.sessions.connectionCount() << "\r\n"
+        << "  Sessions:    " << services_.sessions.sessionCount() << "\r\n"
+        << "  Received:    " << services_.received.load() << "\r\n"
+        << "  Delivered:   " << services_.delivered.load() << "\r\n"
+        << "> ";
+    doWrite(oss.str());
 }
 
 void AdminSession::cmdConfig(const std::string & /*args*/)

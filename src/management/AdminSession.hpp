@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:20:19
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:54:48
+ * Last Modified: 2026-08-24 16:27:21
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -42,17 +42,19 @@
 #include <asio.hpp>
 
 namespace jianm {
-namespace net {
+namespace broker { struct BrokerServices; }
+namespace management {
 
 using tcp = asio::ip::tcp;
 
 class AdminSession : public std::enable_shared_from_this<AdminSession> {
 public:
-    AdminSession(asio::io_context &io_context);
+    AdminSession(asio::io_context &io_context, broker::BrokerServices &services);
     ~AdminSession();
 
     void start();
     tcp::socket& getSocket() { return socket_; }
+    
 
 private:
     void doReadLine();
@@ -73,8 +75,10 @@ private:
 
     tcp::socket socket_;
     asio::streambuf readBuf_;
+    std::string peer_;
     std::unordered_map<std::string, CommandHandler> commands_;
+    broker::BrokerServices &services_;
 };
 
-} // namespace net
+} // namespace management
 } // namespace jianm

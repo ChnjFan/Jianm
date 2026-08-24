@@ -69,6 +69,11 @@ public:
     bool sessionExists(const std::string& client_id) const;
     std::shared_ptr<Session> getSession(const std::string& client_id, bool clean);
 
+    /// Number of active channel connections (by_channel_ size)
+    size_t connectionCount() const;
+    /// Number of stored sessions (sessions_ size)
+    size_t sessionCount() const;
+
 private:
     void dropSession(const std::shared_ptr<Session>& session);
 

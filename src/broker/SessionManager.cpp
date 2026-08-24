@@ -114,6 +114,16 @@ bool SessionManager::sessionExists(const std::string &client_id) const
     return sessions_.count(client_id) > 0;
 }
 
+size_t SessionManager::connectionCount() const
+{
+    return by_channel_.size();
+}
+
+size_t SessionManager::sessionCount() const
+{
+    return sessions_.size();
+}
+
 std::shared_ptr<Session> SessionManager::getSession(const std::string &client_id, bool clean)
 {
     if (clean) {
