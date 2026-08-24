@@ -37,6 +37,9 @@ file(GLOB_RECURSE JIANM_LIB_SOURCES
     management/*.cpp
     management/*.h
     management/*.hpp
+    plugin/*.cpp
+    plugin/*.h
+    plugin/*.hpp
 )
 
 if(JIANM_LIB_SOURCES)
@@ -58,7 +61,8 @@ endif()
 # ---------------------------------------------------------------------------
 # Main executable
 # ---------------------------------------------------------------------------
-add_executable(jianm main.cpp)
+add_executable(jianm main.cpp ${CMAKE_SOURCE_DIR}/plugins/example/MessagePrinterPlugin.hpp)
+target_include_directories(jianm PRIVATE ${CMAKE_SOURCE_DIR}/plugins)
 target_link_libraries(jianm PRIVATE ${JIANM_LINK_LIBS})
 
 # Copy config file to build output directory so the binary can find it.

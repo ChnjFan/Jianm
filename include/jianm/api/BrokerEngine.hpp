@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 11:52:29
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 17:57:06
+ * Last Modified: 2026-08-24 19:14:15
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -43,6 +43,7 @@
 #include <asio.hpp>
 
 #include "jianm/model/Transport.hpp"
+#include "jianm/contracts/IPlugin.hpp"
 
 namespace jianm {
 namespace broker {
@@ -84,6 +85,9 @@ public:
     bool start();
     void stop();
     bool running() const;
+
+    // Dependency Injection (Strategy/Plugin), must be called before start()
+    void addPlugin(std::unique_ptr<IPlugin> plugin);
 
 private:
     class Impl;

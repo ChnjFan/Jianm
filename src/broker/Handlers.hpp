@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:31:08
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 12:05:30
+ * Last Modified: 2026-08-24 20:01:44
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -50,6 +50,6 @@ public:
     void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
         const std::shared_ptr<Packet> &pkt) override;
 };
-    
+
 } // namespace broker
 } // namespace jianm

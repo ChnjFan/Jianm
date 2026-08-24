@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 17:54:06
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 17:55:45
+ * Last Modified: 2026-08-24 19:05:31
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -41,6 +41,54 @@
 #include <string_view>
 
 namespace jianm {
-    
+
+
+/**
+ * @brief Plugin Abstraction
+ * 
+ * IPlugin implementations can be dynamically loaded
+ * by PluginManager via dlopen in the production environment
+ */
+class IPlugin {
+public:
+    virtual ~IPlugin() = default;
+
+    /**
+     * @brief Plugin name
+     * 
+     * @return std::string_view 
+     */
+    virtual std::string_view name() const = 0;
+
+    /**
+     * @brief Called when a client successfully connects
+     *
+     * @param client_id  The client identifier from the CONNECT packet
+     * @param username   The username from the CONNECT packet (empty if absent)
+     */
+    virtual void onClientConnected(const std::string& client_id, const std::string& username) = 0;
+
+    /**
+     * @brief Called when a PUBLISH message is received from a client
+     *
+     * Implementations may inspect or modify the message before it is routed.
+     * Return false to drop the message and prevent further processing.
+     *
+     * @param msg        The inbound PUBLISH packet (may be mutated in place)
+     * @param client_id  The identifier of the publishing client
+     * @return true      To continue normal message routing
+     * @return false     To silently discard the message
+     */
+    virtual bool onMessageIn(PublishPacket& msg, const std::string& client_id) = 0;
+
+    /**
+     * @brief Called when a client disconnects (gracefully or abnormally)
+     *
+     * @param client_id  The identifier of the disconnected client
+     */
+    virtual void onClientDisconnected(const std::string& client_id) = 0;
+};
+
+
 } // namespace jianm
 

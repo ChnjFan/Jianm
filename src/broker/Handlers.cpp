@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 12:59:15
+ * Last Modified: 2026-08-24 19:27:31
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -34,6 +34,8 @@
  */
 
 #include "Handlers.hpp"
+
+#include "plugin/HookRegistry.hpp"
 
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
@@ -134,6 +136,7 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
     out_cp.return_code = ConnackReturnCode::accepted;
     channel->asyncSend(out);
 
+    service.hooks.onClientConnected(cid, cp.username);
     JM_LOG_INFO("client connected: {} from {} {}", cid, channel->getPeer(),
                  cp.clean_session ? "(clean session)" : "(persistent session)");
 }

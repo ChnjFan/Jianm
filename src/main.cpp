@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:50
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 14:16:33
+ * Last Modified: 2026-08-24 19:55:05
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -38,11 +38,13 @@
 #include <iostream>
 #include <memory>
 
+#include "jianm/api/BrokerEngine.hpp"
+
 #include "common/ConfigMgr.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 
-#include "jianm/api/BrokerEngine.hpp"
+#include "example/MessagePrinterPlugin.hpp"
 
 int main(int argc, char* argv[]) {
     (void)argc;
@@ -58,6 +60,7 @@ int main(int argc, char* argv[]) {
 
         asio::io_context ctx{1};
         jianm::broker::BrokerEngine broker(opts, ctx);
+        broker.addPlugin(std::make_unique<jianm::example::MessagePrinterPlugin>());
 
         if (!broker.start()) {
             return 1;

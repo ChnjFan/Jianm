@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 16:36:51
+ * Last Modified: 2026-08-24 19:29:49
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -45,6 +45,7 @@
 #include "net/ChannelFactory.hpp"
 #include "management/AdminServer.hpp"
 #include "protocol/Codec.hpp"
+#include "plugin/HookRegistry.hpp"
 
 #include "ClientContext.hpp"
 #include "SessionManager.hpp"
@@ -67,6 +68,8 @@ public:
     void stop();
     bool running() const { return started_; };
 
+    void addPlugin(std::unique_ptr<IPlugin> plugin) { hooks_.add(std::move(plugin)); }
+
 private:
     static jianm::net::ChannelFactory::Config makeFactoryConfig(const BrokerEngine::Options& opts);
 
@@ -86,6 +89,8 @@ private:
 
     jianm::net::ChannelFactory factory_;
     SessionManager sessions_;
+    jianm::plugin::HookRegistry hooks_;
+
     BrokerServices services_;
     PacketDispatcher dispachter_;
     std::shared_ptr<jianm::management::AdminServer> admin_;
@@ -107,7 +112,7 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , acceptor_(io_context_, tcp::endpoint(tcp::v4(), opts_.port))
     , factory_(makeFactoryConfig(opts), ctx)
     , sessions_()
-    , services_(sessions_)
+    , services_(sessions_, hooks_)
     , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
     std::string logLevel = jianm::common::ConfigMgr::getInstance()["log_level"];
@@ -217,7 +222,7 @@ void BrokerEngine::Impl::onPacket(std::shared_ptr<ClientContext> ctx, const jian
     cond_.notify_one();
 }
 
-void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const std::string &/*reason*/)
+void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const std::string& reason)
 {
     auto ctx = sessions_.byChannel(channel);
     if (!ctx) {
@@ -231,6 +236,11 @@ void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const st
     if (ctx->connected && !ctx->clean_disconnect && !ctx->taken_over && ctx->will.valid) {
         // TODO: send will message
         JM_LOG_INFO("will published for {}", cid);
+    }
+
+    services_.hooks.onClientDisconnected(cid);
+    if (!cid.empty()) {
+        JM_LOG_INFO("client dissconnected: {} ({})", cid, reason);
     }
 
     sessions_.removeChannel(channel);
@@ -292,4 +302,9 @@ void BrokerEngine::stop()
 bool BrokerEngine::running() const
 {
     return impl_->running();
+}
+
+void BrokerEngine::addPlugin(std::unique_ptr<IPlugin> plugin)
+{
+    return impl_->addPlugin(std::move(plugin));
 }

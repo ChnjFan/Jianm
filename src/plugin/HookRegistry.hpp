@@ -1,10 +1,10 @@
 /*
- * File: /Services.hpp
- * Project: broker
- * Created Date: 2026-08-23 15:58:59
+ * File: /HookRegistry.hpp
+ * Project: plugin
+ * Created Date: 2026-08-24 19:09:09
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 19:20:35
+ * Last Modified: 2026-08-24 19:11:25
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,34 +35,40 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <functional>
+#include "jianm/contracts/IPlugin.hpp"
+
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace jianm {
-namespace plugin { class HookRegistry; }
-namespace broker {
+namespace plugin {
 
-class SessionManager;
+/// @brief Plugin Registry (Observer Pattern): 
+/// It broadcasts events at hook points, and plugins respond on demand.
+class HookRegistry {
+public:
+    void add(std::unique_ptr<IPlugin> plugin) { plugins_.push_back(std::move(plugin)); }
 
-/**
- * @brief Service Aggregation
- *
- * Package all core dependencies and pass them to the Handler (dependency injection for convenient mock testing)
- */
-struct BrokerServices
-{
-    SessionManager& sessions;
-    plugin::HookRegistry& hooks;
+    void onClientConnected(const std::string& client_id, const std::string& username) {
+        for (auto& p : plugins_) p->onClientConnected(client_id, username);
+    }
 
-    std::atomic<uint64_t> received{0};
-    std::atomic<uint64_t> delivered{0};
+    // If any plugin returns false, the message will be discarded.
+    bool onMessageIn(PublishPacket& msg, const std::string& client_id) {
+        for (auto& p : plugins_) {
+            if (!p->onMessageIn(msg, client_id)) return false;
+        }
+        return true;
+    }
 
-    BrokerServices(SessionManager& s, plugin::HookRegistry& h)
-        : sessions(s), hooks(h) {}
+    void onClientDisconnected(const std::string& client_id) {
+        for (auto& p : plugins_) p->onClientDisconnected(client_id);
+    }
+
+private:
+    std::vector<std::unique_ptr<IPlugin>> plugins_;
 };
 
-    
-} // namespace broker
-} // namespace jianm
+}  // namespace plugin
+}  // namespace jianm

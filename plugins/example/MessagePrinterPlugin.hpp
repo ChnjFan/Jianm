@@ -1,10 +1,10 @@
 /*
- * File: /Services.hpp
- * Project: broker
- * Created Date: 2026-08-23 15:58:59
+ * File: /MessagePrinterPlugin.hpp
+ * Project: example
+ * Created Date: 2026-08-24 19:45:20
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 19:20:35
+ * Last Modified: 2026-08-24 19:53:17
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,34 +35,41 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <functional>
+#include "jianm/contracts/IPlugin.hpp"
+
+#include <iostream>
 #include <string>
+#include <string_view>
 
 namespace jianm {
-namespace plugin { class HookRegistry; }
-namespace broker {
+namespace example {
 
-class SessionManager;
+// Sample Plugin: Print each message; discard topics starting with "drop/" 
+// demonstrates the intervention capability of plugins
+class MessagePrinterPlugin : public IPlugin {
+public:
+    std::string_view name() const override { return "message-printer"; }
 
-/**
- * @brief Service Aggregation
- *
- * Package all core dependencies and pass them to the Handler (dependency injection for convenient mock testing)
- */
-struct BrokerServices
-{
-    SessionManager& sessions;
-    plugin::HookRegistry& hooks;
+    void onClientConnected(const std::string& client_id, const std::string& username) override {
+        std::cout << "[plugin] + client: " << client_id
+                  << (username.empty() ? "" : " (user " + username + ")") << std::endl;
+    }
 
-    std::atomic<uint64_t> received{0};
-    std::atomic<uint64_t> delivered{0};
+    bool onMessageIn(PublishPacket& msg, const std::string& client_id) override {
+        if (msg.topic.rfind("drop/", 0) == 0) {
+            std::cout << "[plugin] drop: " << client_id << " -> " << msg.topic << std::endl;
+            return false;
+        }
+        std::cout << "[plugin] msg: " << client_id << " -> " << msg.topic << " ("
+                  << msg.payload.size() << "B)" << std::endl;
+        return true;
+    }
 
-    BrokerServices(SessionManager& s, plugin::HookRegistry& h)
-        : sessions(s), hooks(h) {}
+    void onClientDisconnected(const std::string& client_id) override {
+        std::cout << "[plugin] - client: " << client_id << std::endl;
+    }
 };
-
     
-} // namespace broker
+} // namespace example
 } // namespace jianm
+
