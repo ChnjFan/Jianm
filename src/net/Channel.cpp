@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 17:20:34
+ * Last Modified: 2026-08-27 17:23:05
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -143,7 +143,8 @@ void Channel::asyncRemainingLen(size_t offset)
 
     size_t rlIndex = 1;  // remaining length starts after the first fixed header byte
     int remainingLength = static_cast<int>(protocol::Codec::decodeRemainingLength(buffer_, rlIndex));
-    const jianm::Header header = { .byte = buffer_[0] };
+    jianm::Header header{};
+    header.byte = buffer_[0];
     JM_LOG_TRACE("Received packet header: type={} qos={} dup={} retain={} remaininglen={}",
         static_cast<int>(header.bits.type),
         static_cast<int>(header.bits.qos),

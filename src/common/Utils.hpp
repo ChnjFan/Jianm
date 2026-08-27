@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 21:11:04
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 12:53:53
+ * Last Modified: 2026-08-27 17:09:41
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -44,8 +44,6 @@
 #include <string>
 #include <utility>
 
-using namespace std::chrono_literals;
-
 namespace jianm {
 namespace common {
 
@@ -63,7 +61,7 @@ private:
 inline void generate_client_id(std::string& value) {
     static const std::string cliendIDPrefix = "JianmClient_";
     static std::atomic<size_t> count = 0;
-    if (count == SIZE_T_MAX) {
+    if (count == SIZE_MAX) {
         count = 0;
     }
     value = cliendIDPrefix + std::to_string(count++);

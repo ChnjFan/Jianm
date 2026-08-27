@@ -93,7 +93,8 @@ PacketPtr jianm::protocol::Codec::decode(const std::vector<uint8_t> &buffer)
         return nullptr;
     }
 
-    Header header{ .byte = buffer[0] };
+    Header header{};
+    header.byte = buffer[0];
     return deserializePacket(header.bits.type, buffer);
 }
 

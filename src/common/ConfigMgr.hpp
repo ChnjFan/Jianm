@@ -35,12 +35,12 @@
 
 #pragma once
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 namespace jianm {
 namespace common {
-
-#include <unordered_map>
-#include <string>
-#include <vector>
 
 constexpr unsigned short DEFAULT_SERVER_PORT = 1883;
 constexpr unsigned short DEFAULT_ADMIN_PORT = 10000;
