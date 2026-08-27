@@ -35,6 +35,9 @@
 
 
 #include "Codec.hpp"
+
+#include <stdexcept>
+
 #include "common/Utils.hpp"
 
 using namespace jianm::protocol;

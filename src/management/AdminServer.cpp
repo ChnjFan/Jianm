@@ -35,6 +35,9 @@
 
 
 #include "AdminServer.hpp"
+
+#include <thread>
+
 #include "AdminSession.hpp"
 #include "broker/Services.hpp"
 #include "common/Logger.hpp"

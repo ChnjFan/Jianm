@@ -35,8 +35,12 @@
 
 #pragma once
 
-#include <vector>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "jianm/model/Packet.hpp"
 

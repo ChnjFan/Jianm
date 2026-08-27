@@ -36,6 +36,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 
 // Must be defined before including fmt headers so that all template
 // definitions are instantiated in each translation unit (header-only mode).

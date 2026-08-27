@@ -35,6 +35,12 @@
 
 #pragma once
 
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <vector>
+
 #include <asio.hpp>
 
 #include "jianm/contracts/ITransport.hpp"

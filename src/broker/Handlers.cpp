@@ -35,6 +35,10 @@
 
 #include "Handlers.hpp"
 
+#include <stdexcept>
+#include <string>
+#include <variant>
+
 #include "plugin/HookRegistry.hpp"
 
 #include "common/Utils.hpp"

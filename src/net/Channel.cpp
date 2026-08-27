@@ -34,6 +34,9 @@
  */
 
 #include "Channel.hpp"
+
+#include <stdexcept>
+
 #include "common/ConfigMgr.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"

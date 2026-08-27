@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 19:29:49
+ * Last Modified: 2026-08-27 16:43:04
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -36,6 +36,7 @@
 
 #include <thread>
 #include <asio.hpp>
+#include <queue>
 
 #include "jianm/api/BrokerEngine.hpp"
 

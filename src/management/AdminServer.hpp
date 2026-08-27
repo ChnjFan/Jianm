@@ -36,6 +36,8 @@
 #pragma once
 
 #include <memory>
+#include <thread>
+
 #include <asio.hpp>
 
 namespace jianm {

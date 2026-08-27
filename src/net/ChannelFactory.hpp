@@ -36,6 +36,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+
 #include <asio.hpp>
 
 #include "jianm/model/Transport.hpp"

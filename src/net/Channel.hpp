@@ -35,7 +35,13 @@
 
 #pragma once
 
+#include <chrono>
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include <asio.hpp>
 
 #include "jianm/contracts/ITransport.hpp"

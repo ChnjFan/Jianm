@@ -35,6 +35,8 @@
 
 #include "TcpTransport.hpp"
 
+#include <mutex>
+
 using namespace jianm::net;
 
 static const int MAX_SEND_QUEUE = 1024;
