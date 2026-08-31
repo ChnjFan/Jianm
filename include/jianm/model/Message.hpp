@@ -1,10 +1,10 @@
 /*
- * File: /Handlers.hpp
- * Project: broker
- * Created Date: 2026-08-23 16:31:08
+ * File: /Message.hpp
+ * Project: model
+ * Created Date: 2026-08-24 21:53:55
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 21:04:53
+ * Last Modified: 2026-08-24 21:54:50
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,30 +35,20 @@
 
 #pragma once
 
-#include <memory>
+#include "jianm/model/Qos.hpp"
 
-#include "jianm/contracts/IPacketHandler.hpp"
-
-#include "ClientContext.hpp"
+#include <string>
 
 namespace jianm {
-namespace broker {
 
-// Each Handler is responsible for only one type of message
-// validation -> invoking the service layer
-
-class ConnectHandler : public IPacketHandler {
-public:
-    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
-        const std::shared_ptr<Packet> &pkt) override;
+// 路由层使用的统一消息（由 PUBLISH 报文派生）
+struct Message {
+    std::string topic;
+    std::string payload;
+    Qos qos{Qos::AtMostOnce};
+    bool retain{false};
+    std::string source_client;
 };
 
-class PublishHandler : public IPacketHandler {
-public:
-    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
-        const std::shared_ptr<Packet> &pkt) override;
-};
-
-
-} // namespace broker
 } // namespace jianm
+

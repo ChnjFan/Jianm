@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 11:09:22
+ * Last Modified: 2026-08-31 10:28:07
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -80,20 +80,45 @@ private:
     static int writeString16(std::vector<uint8_t> &buffer, const std::string &value);
 
     static PacketPtr deserializePacket(uint8_t type, const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializeAckPacket(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializeConnect(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePublish(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePubAck(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePubRec(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePubRel(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePubComp(const std::vector<uint8_t>& buffer);
 
     static bool serializePacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializeAckPacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializeConnack(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializePublish(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializePubAck(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializePubRec(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializePubRel(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializePubComp(PacketPtr pkt, std::vector<uint8_t>& buffer);
+
+    static size_t calcPublishRemainingLength(const PublishPacket& pkt);
 
     static inline const DeserializeFunc decoders_[] = {
         nullptr,
         deserializeConnect,
+        nullptr,
+        deserializePublish,
+        deserializePubAck,
+        deserializePubRec,
+        deserializePubRel,
+        deserializePubComp,
     };
 
     static inline const SerializeFunc encoders_[] = {
         nullptr,
         nullptr,
         serializeConnack,
+        serializePublish,
+        serializePubAck,
+        serializePubRec,
+        serializePubRel,
+        serializePubComp,
     };
 };
 

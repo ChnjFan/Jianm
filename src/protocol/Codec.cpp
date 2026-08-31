@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 14:37:01
+ * Last Modified: 2026-08-31 10:29:06
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -87,7 +87,7 @@ size_t Codec::decodeRemainingLength(const std::vector<uint8_t> &buffer, size_t &
     return length;
 }
 
-PacketPtr jianm::protocol::Codec::decode(const std::vector<uint8_t> &buffer)
+PacketPtr Codec::decode(const std::vector<uint8_t> &buffer)
 {
     if (buffer.size() < 2) {
         return nullptr;
@@ -98,7 +98,7 @@ PacketPtr jianm::protocol::Codec::decode(const std::vector<uint8_t> &buffer)
     return deserializePacket(header.bits.type, buffer);
 }
 
-bool jianm::protocol::Codec::encode(const PacketPtr &pkt, std::vector<uint8_t> &buffer)
+bool Codec::encode(const PacketPtr &pkt, std::vector<uint8_t> &buffer)
 {
     return serializePacket(pkt, buffer);
 }
@@ -173,12 +173,64 @@ int Codec::writeString16(std::vector<uint8_t> &buffer, const std::string &value)
     return bytesWritten;
 }
 
-PacketPtr jianm::protocol::Codec::deserializePacket(uint8_t type, const std::vector<uint8_t> &buffer)
+PacketPtr Codec::deserializePacket(uint8_t type, const std::vector<uint8_t> &buffer)
 {
+    size_t size = buffer.size();
+    if (size < 2) {
+        return nullptr;
+    }
+
     if (type < sizeof(decoders_) / sizeof(DeserializeFunc) && decoders_[type]) {
         return decoders_[type](buffer);
     }
     return nullptr;
+}
+
+/**
+ * @brief 
+ * 
+ * @param buffer 
+ * @return PacketPtr 
+ * 
+ * |   Bit    |  7  |  6  |  5  |  4  |  3  |  2  |  1  |   0    |  <-- Fixed Header
+ * |----------|-----------------------|--------------------------|
+ * | Byte 1   |    MQTT type = 4      |           0000           |
+ * |----------|--------------------------------------------------|
+ * | Byte 2   |               Remaining Length = 2               |
+ * |----------|--------------------------------------------------|  <-- Variable Header
+ * | Byte 3   |          Packet Identifier MSB                   |
+ * |----------|--------------------------------------------------|
+ * | Byte 4   |          Packet Identifier LSB                   |
+ * |----------|--------------------------------------------------|
+ * |                     (No Payload)                            |
+ */
+PacketPtr Codec::deserializeAckPacket(const std::vector<uint8_t> &buffer)
+{
+    size_t index = 0;
+    Header header;
+    header.byte = readByte(buffer, index);
+    const uint8_t flags = header.byte & 0x0f;
+
+    if (PacketType::Pubrel == static_cast<PacketType>(header.bits.type)
+        && flags != 0x02) { // PUBREL Qos must be 1
+        throw std::runtime_error("PUBREL flags error");
+    }
+    else if (flags != 0) {
+        throw std::runtime_error("PUBLISH ACK flags error");
+    }
+
+    PacketPtr packet = std::make_shared<Packet>();
+    packet->type = static_cast<PacketType>(header.bits.type);
+    auto& ack = packet->body.emplace<AckPacket>();
+
+    size_t remainingLength = decodeRemainingLength(buffer, index);
+    if (index + remainingLength > buffer.size()) {
+        // Insufficient cached data to form a complete message
+        throw std::runtime_error("PUBLISH ACKPACKET remaining length overflow");
+    }
+    
+    ack.packet_id = readUint16(buffer, index);
+    return packet;
 }
 
 /**
@@ -220,11 +272,6 @@ PacketPtr jianm::protocol::Codec::deserializePacket(uint8_t type, const std::vec
  */
 PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
 {
-    size_t size = buffer.size();
-    if (size < 2) {
-        return nullptr;
-    }
-
     size_t index = 0;
     PacketPtr packet = std::make_shared<Packet>();
     packet->type = PacketType::Connect;
@@ -241,7 +288,7 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
     // remainingLength can be 0, for example, PINREQ.
     // The value is verified at the session layer; only message parsing is performed here.
     size_t remainingLength = decodeRemainingLength(buffer, index);
-    if (index + remainingLength > size) {
+    if (index + remainingLength > buffer.size()) {
         // Insufficient cached data to form a complete message
         throw std::runtime_error("CONNECT remaining length overflow");
     }
@@ -286,7 +333,7 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
     if (cp.bits.username) {
         readString16(buffer, index, cp.username);
         if (!jianm::common::is_valid_utf8(cp.username)) {
-            throw std::runtime_error("CONNECT username id is not utf-8");
+            throw std::runtime_error("CONNECT username is not utf-8");
         }
     }
 
@@ -297,13 +344,109 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
     return packet;
 }
 
-bool jianm::protocol::Codec::serializePacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
+/**
+ * @brief Deserialize PUBLISH
+ * 
+ * @param buffer 
+ * @return PacketPtr 
+ * 
+ * |   Bit    |  7  |  6  |  5  |  4  |  3  |  2  |  1  |   0    |  <-- Fixed Header
+ * |----------|-----------------------|--------------------------|
+ * | Byte 1   |    MQTT type = 3      | DUP |    QoS    | RETAIN |
+ * |----------|--------------------------------------------------|
+ * | Byte 2   |            Remaining Length                      |
+ * |----------|--------------------------------------------------|  <-- Variable Header
+ * | Byte 3~4 |            Topic Length                          |
+ * |----------|--------------------------------------------------|
+ * | Byte 5.. |            Topic Name (UTF-8)                    |
+ * |----------|--------------------------------------------------|  <-- Packet Identifier (QoS > 0 only)
+ * | Byte n+2 |            Packet Identifier                     |
+ * |----------|--------------------------------------------------|  <-- Payload
+ * | Byte n+3 |            Application Message                   |
+ * |   ...    |            (variable length)                     |
+ * 
+ */
+PacketPtr Codec::deserializePublish(const std::vector<uint8_t> &buffer)
+{
+    size_t index = 0;
+    PacketPtr packet = std::make_shared<Packet>();
+    packet->type = PacketType::Publish;
+    auto& pub = packet->body.emplace<PublishPacket>();
+
+    Header header;
+    header.byte = readByte(buffer, index);
+    if (header.bits.qos == 3) {
+        throw std::runtime_error("PUBLISH qos");
+    }
+
+    pub.dup = header.bits.dup;
+    pub.qos = static_cast<Qos>(header.bits.qos);
+    pub.retain = header.bits.retain;
+
+    size_t remainingLength = decodeRemainingLength(buffer, index);
+    if (index + remainingLength > buffer.size()) {
+        // Insufficient cached data to form a complete message
+        throw std::runtime_error("PUBLISH remaining length overflow");
+    }
+    const size_t headerStart = index;
+
+    readString16(buffer, index, pub.topic);
+    if (!jianm::common::is_valid_utf8(pub.topic)) {
+        throw std::runtime_error("PUBLISH topic is not utf-8");
+    }
+
+    if (static_cast<uint8_t>(pub.qos) > static_cast<uint8_t>(Qos::AtMostOnce)) {
+        pub.packet_id = readUint16(buffer, index);
+    }
+
+    const size_t payloadSize = remainingLength - (index - headerStart);
+    pub.payload.assign(reinterpret_cast<const char *>(buffer.data()) + index, payloadSize);
+
+    return packet;
+}
+
+PacketPtr jianm::protocol::Codec::deserializePubAck(const std::vector<uint8_t> &buffer)
+{
+    return deserializeAckPacket(buffer);
+}
+
+PacketPtr jianm::protocol::Codec::deserializePubRec(const std::vector<uint8_t> &buffer)
+{
+    return deserializeAckPacket(buffer);
+}
+
+PacketPtr jianm::protocol::Codec::deserializePubRel(const std::vector<uint8_t> &buffer)
+{
+    return deserializeAckPacket(buffer);
+}
+
+PacketPtr jianm::protocol::Codec::deserializePubComp(const std::vector<uint8_t> &buffer)
+{
+    return deserializeAckPacket(buffer);
+}
+
+bool Codec::serializePacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     auto type = static_cast<uint8_t>(pkt->type);
     if (type < sizeof(encoders_) / sizeof(SerializeFunc) && encoders_[type]) {
         return encoders_[type](pkt, buffer);
     }
     return false;
+}
+
+bool jianm::protocol::Codec::serializeAckPacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    if (pkt->type == PacketType::Pubrel) {
+        writeByte(buffer, MQTT_PUBREL_BYTE);
+    }
+    else {
+        writeByte(buffer, static_cast<uint8_t>(static_cast<uint8_t>(pkt->type) << 4));
+    }
+    writeByte(buffer, 2); // remaining length
+    const auto& ack = std::get<AckPacket>(pkt->body);
+    writeUint16(buffer, ack.packet_id);
+
+    return true;
 }
 
 /**
@@ -328,16 +471,77 @@ bool jianm::protocol::Codec::serializePacket(PacketPtr pkt, std::vector<uint8_t>
  * |----------|--------------------------------------------------|
  * |                     (No Payload)                            |
  */
-bool jianm::protocol::Codec::serializeConnack(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializeConnack(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     // CONNACK has a fixed length of 4 bytes
     buffer.reserve(4);
-    buffer.push_back(MQTT_CONNACK_BYTE);
+    writeByte(buffer, MQTT_CONNACK_BYTE);
     // [MQTT-3.2.1]For the CONNACK Packet this has the value 2
-    buffer.push_back(2);
+    writeByte(buffer, 2);
     const auto& ca = std::get<ConnackPacket>(pkt->body);
-    buffer.push_back(ca.session_present ? 1 : 0);
-    buffer.push_back(static_cast<uint8_t>(ca.return_code));
+    writeByte(buffer, ca.session_present ? 1 : 0);
+    writeByte(buffer, static_cast<uint8_t>(ca.return_code));
 
     return true;
+}
+
+bool jianm::protocol::Codec::serializePublish(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    Header header{0};
+    header.bits.type = static_cast<uint8_t>(PacketType::Publish);
+    const auto& pub = std::get<PublishPacket>(pkt->body);
+    header.bits.dup = pub.dup ? 1 : 0;
+    header.bits.retain = pub.retain ? 1 : 0;
+    header.bits.qos = static_cast<uint8_t>(pub.qos);
+    writeByte(buffer, header.byte);
+    
+
+    size_t remainingLength = calcPublishRemainingLength(pub);
+    if (remainingLength == 0) {
+        return false;
+    }
+    encodeRemainingLength(buffer, remainingLength);
+
+    writeString16(buffer, pub.topic);
+
+    if (pub.qos != Qos::AtMostOnce) {
+        writeUint16(buffer, pub.packet_id);
+    }
+    
+    buffer.insert(buffer.end(), pub.payload.begin(), pub.payload.end());
+    return true;
+}
+
+bool jianm::protocol::Codec::serializePubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    return serializeAckPacket(pkt, buffer);
+}
+
+bool jianm::protocol::Codec::serializePubRec(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    return serializeAckPacket(pkt, buffer);
+}
+
+bool jianm::protocol::Codec::serializePubRel(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    return serializeAckPacket(pkt, buffer);
+}
+
+bool jianm::protocol::Codec::serializePubComp(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    return serializeAckPacket(pkt, buffer);
+}
+
+size_t jianm::protocol::Codec::calcPublishRemainingLength(const PublishPacket &pkt)
+{
+    int length = 0;
+
+    length += (2 + pkt.topic.length());
+    if (pkt.qos != Qos::AtMostOnce) {
+        length += 2;
+    }
+
+    length += pkt.payload.size();
+
+    return length;
 }

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 18:05:00
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 14:31:39
+ * Last Modified: 2026-08-28 11:17:26
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -58,7 +58,6 @@ void TcpTransport::asyncReadSome(std::vector<uint8_t> &buffer, const size_t read
         buffer.resize(readSize + totalSize);
     }
 
-    // callback 注意值传递，
     socket_.async_read_some(asio::buffer(buffer.data() + readSize, totalSize - readSize),
         [this, self, &buffer, readSize, totalSize, callback](asio::error_code ec, std::size_t bytes_transferred) {
             if (ec || readSize + bytes_transferred >= totalSize) {

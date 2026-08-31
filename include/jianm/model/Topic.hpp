@@ -1,10 +1,10 @@
 /*
- * File: /Handlers.hpp
- * Project: broker
- * Created Date: 2026-08-23 16:31:08
+ * File: /Topic.hpp
+ * Project: model
+ * Created Date: 2026-08-24 21:03:10
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 21:04:53
+ * Last Modified: 2026-08-31 10:00:26
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,30 +35,35 @@
 
 #pragma once
 
-#include <memory>
-
-#include "jianm/contracts/IPacketHandler.hpp"
-
-#include "ClientContext.hpp"
+#include <string>
+#include <vector>
 
 namespace jianm {
-namespace broker {
 
-// Each Handler is responsible for only one type of message
-// validation -> invoking the service layer
+inline std::vector<std::string> splitTopic(const std::string& topic) {
+    std::vector<std::string> out;
+    if (topic.empty()) return {""};
+    size_t start = 0;
+    while (true) {
+        size_t pos = topic.find('/', start);
+        if (pos == std::string::npos) {
+            out.push_back(topic.substr(start));
+            break;
+        }
+        out.push_back(topic.substr(start, pos - start));
+        start = pos + 1;
+    }
+    return out;
+}
+    
+inline bool isTopicNameInvalid(const std::string& topic) {
+    if (topic.empty()) return false;
+    for (auto c : topic) {
+        // Wildcards are not allowed in published topics
+        if (c == '+' || c == '#') return true;
+    }
+    return false;
+}
 
-class ConnectHandler : public IPacketHandler {
-public:
-    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
-        const std::shared_ptr<Packet> &pkt) override;
-};
 
-class PublishHandler : public IPacketHandler {
-public:
-    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
-        const std::shared_ptr<Packet> &pkt) override;
-};
-
-
-} // namespace broker
 } // namespace jianm

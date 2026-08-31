@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:58:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 19:20:35
+ * Last Modified: 2026-08-24 23:09:32
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -45,6 +45,7 @@ namespace plugin { class HookRegistry; }
 namespace broker {
 
 class SessionManager;
+class TopicTree;
 
 /**
  * @brief Service Aggregation
@@ -53,14 +54,15 @@ class SessionManager;
  */
 struct BrokerServices
 {
+    TopicTree& topics;
     SessionManager& sessions;
     plugin::HookRegistry& hooks;
 
     std::atomic<uint64_t> received{0};
     std::atomic<uint64_t> delivered{0};
 
-    BrokerServices(SessionManager& s, plugin::HookRegistry& h)
-        : sessions(s), hooks(h) {}
+    BrokerServices(TopicTree& t, SessionManager& s, plugin::HookRegistry& h)
+        : topics(t), sessions(s), hooks(h) {}
 };
 
     

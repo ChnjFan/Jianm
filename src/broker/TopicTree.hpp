@@ -1,10 +1,10 @@
 /*
- * File: /Handlers.hpp
+ * File: /TopicTree.hpp
  * Project: broker
- * Created Date: 2026-08-23 16:31:08
+ * Created Date: 2026-08-24 22:12:41
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 21:04:53
+ * Last Modified: 2026-08-31 09:48:11
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,32 +33,49 @@
  * HISTORY:
  */
 
+
 #pragma once
 
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-#include "jianm/contracts/IPacketHandler.hpp"
+#include "jianm/model/Qos.hpp"
+#include "jianm/model/Session.hpp"
 
-#include "ClientContext.hpp"
 
 namespace jianm {
 namespace broker {
-
-// Each Handler is responsible for only one type of message
-// validation -> invoking the service layer
-
-class ConnectHandler : public IPacketHandler {
+    
+class TopicTree {
 public:
-    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
-        const std::shared_ptr<Packet> &pkt) override;
-};
+    struct Match {
+        std::weak_ptr<Session> session;
+        std::string filter;
+        Qos qos{Qos::AtMostOnce};
+    };
+    
+    TopicTree() = default;
+    ~TopicTree() = default;
 
-class PublishHandler : public IPacketHandler {
-public:
-    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
-        const std::shared_ptr<Packet> &pkt) override;
+    void add(std::shared_ptr<Session> session, const std::string& filter, Qos qos);
+    void remove(std::shared_ptr<Session> session, const std::string& filter);
+    std::vector<Match> match(const std::string& topic) const;
+
+private:
+    struct Node {
+        std::unordered_map<std::string, std::unique_ptr<Node>> children;
+        std::vector<Match> subscribers;
+    };
+
+    void collect(const Node* node, const std::vector<std::string>& tokens, size_t idx,
+                std::vector<Match>& out) const;
+
+    std::unique_ptr<Node> root_ = std::make_unique<Node>();
 };
 
 
 } // namespace broker
 } // namespace jianm
+

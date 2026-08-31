@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 19:27:31
+ * Last Modified: 2026-08-31 09:07:46
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -39,16 +39,34 @@
 #include <string>
 #include <variant>
 
-#include "plugin/HookRegistry.hpp"
+#include "jianm/model/Topic.hpp"
+#include "jianm/model/Message.hpp"
 
+#include "plugin/HookRegistry.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 #include "net/Channel.hpp"
 #include "Services.hpp"
 #include "SessionManager.hpp"
+#include "Router.hpp"
 
 using namespace jianm::broker;
 
+namespace jianm {
+
+static void connAck(std::shared_ptr<ClientContext> &client, PacketType type, uint16_t packet_id)
+{
+    auto pkt = std::make_shared<Packet>();
+    pkt->type = type;
+    auto& ack = pkt->body.emplace<AckPacket>();
+    ack.packet_id = packet_id;
+    auto channel = client->channel.lock();
+    if (channel) {
+        channel->asyncSend(pkt);
+    }
+}
+
+}
 void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> &client,
      const std::shared_ptr<Packet> &pkt)
 {
@@ -143,5 +161,64 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
     service.hooks.onClientConnected(cid, cp.username);
     JM_LOG_INFO("client connected: {} from {} {}", cid, channel->getPeer(),
                  cp.clean_session ? "(clean session)" : "(persistent session)");
+}
+
+void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     const std::shared_ptr<Packet> &pkt)
+{
+    auto& pub = std::get<PublishPacket>(pkt->body);
+
+    if (isTopicNameInvalid(pub.topic)) {
+        throw std::runtime_error("invlaid PUBLISH topic");
+    }
+
+    // The source client for forwarding messages shall write the client ID 
+    // of the client that received the message.
+    pub.source_client = client->client_id;
+    service.received++;
+
+    // QoS Semantics: DUP retransmission deduplication
+    // If the packet‑id has been received, only an ACK is returned without repeated routing
+    if (pub.qos == Qos::AtLeastOnce) {
+        if (client->awaiting_puback.count(pub.packet_id)) {
+            connAck(client, PacketType::Puback, pub.packet_id);
+            return;
+        }
+        client->awaiting_puback.emplace(pub.packet_id, pub.topic);
+    }
+    else if (pub.qos == Qos::ExactlyOnce) {
+        if (client->awaiting_pubrel.count(pub.packet_id)) {
+            connAck(client, PacketType::Pubrec, pub.packet_id);
+            return;
+        }
+        client->awaiting_pubrel.emplace(pub.packet_id, pub.topic);
+    }
+
+    // Plugins can discard or modify messages
+    if (!service.hooks.onMessageIn(pub, client->client_id)) {
+        return;
+    }
+
+    // Empty retained messages shall be cleared instead of being forwarded.
+    if (pub.retain && pub.payload.empty()) {
+        // TODO: clear retained messages, do not forward
+        if (pub.qos == Qos::AtLeastOnce)
+            connAck(client, PacketType::Puback, pub.packet_id);
+        else if (pub.qos == Qos::ExactlyOnce)
+            connAck(client, PacketType::Pubrec, pub.packet_id);
+        return;
+    }
+
+    Message msg{pub.topic, pub.payload, pub.qos, pub.retain, client->client_id};
+    if (pub.retain) {
+        // TODO: store retain message
+    }
+    Router router(service);
+    router.route(msg);
+    
+    if (pub.qos == Qos::AtLeastOnce)
+        connAck(client, PacketType::Puback, pub.packet_id);
+    else if (pub.qos == Qos::ExactlyOnce)
+        connAck(client, PacketType::Pubrec, pub.packet_id);
 }
 

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 17:08:11
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 13:16:21
+ * Last Modified: 2026-08-24 23:20:12
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -68,6 +68,8 @@ public:
     void close();
 
     void requestClose(const std::string& reason);
+
+    bool isClosing() const { return closing_; }
 
     tcp::socket& getSocket() { return transport_->getSocket(); }
 

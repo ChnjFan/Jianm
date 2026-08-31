@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-27 17:23:05
+ * Last Modified: 2026-08-27 17:49:24
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -45,6 +45,7 @@
 using namespace jianm::net;
 
 static const int DEFAULT_BUFFER_SIZE = 1024;
+static const int DEFAULT_PACKET_MAX_SIZE = (256*1024*1024);
 
 Channel::Channel(std::shared_ptr<jianm::ITransport> transport)
     : transport_(transport)
@@ -134,6 +135,7 @@ void Channel::asyncRemainingLen(size_t offset)
             [this, self, offset](const asio::error_code& ec) {
             if (ec) {
                 JM_LOG_ERROR("Channel {} is reading remaining len closed: {}", peer_, ec.message());
+                requestClose("peer closed connection");
                 return;
             }
             asyncRemainingLen(offset + 1);
@@ -151,6 +153,10 @@ void Channel::asyncRemainingLen(size_t offset)
         static_cast<int>(header.bits.dup),
         static_cast<int>(header.bits.retain),
         remainingLength);
+    
+    if (remainingLength > DEFAULT_PACKET_MAX_SIZE) {
+        return requestClose("remaining length bigger than max packet size");
+    }
 
     // Read payload starting AFTER the header + remaining length bytes
     asyncReadPayload(offset, remainingLength);
@@ -164,7 +170,7 @@ void Channel::asyncReadPayload(size_t offset, size_t size)
         [this, self](const asio::error_code& ec) {
         if (ec) {
             JM_LOG_ERROR("Channel {} is reading payload closed: {}", peer_, ec.message());
-            close();
+            requestClose("peer closed connection");
             return;
         }
 

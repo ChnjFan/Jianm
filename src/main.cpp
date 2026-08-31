@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
 
         asio::io_context ctx{1};
         jianm::broker::BrokerEngine broker(opts, ctx);
-        broker.addPlugin(std::make_unique<jianm::example::MessagePrinterPlugin>());
+        // broker.addPlugin(std::make_unique<jianm::example::MessagePrinterPlugin>());
 
         if (!broker.start()) {
             return 1;

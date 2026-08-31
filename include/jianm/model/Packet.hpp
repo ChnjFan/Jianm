@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:31:18
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 17:56:44
+ * Last Modified: 2026-08-31 09:36:43
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -47,6 +47,7 @@ namespace jianm {
 #define JM_MQTT_3_1_1_VERSION_LEVEL     (4)
 
 constexpr uint8_t MQTT_CONNACK_BYTE = 0x20;
+constexpr uint8_t MQTT_PUBREL_BYTE = 0x62;
 
 /// @brief Message Type (MQTT 3.1.1 Control Packet)
 enum class PacketType : uint8_t {

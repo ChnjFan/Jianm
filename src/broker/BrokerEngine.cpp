@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-27 16:43:04
+ * Last Modified: 2026-08-31 09:59:04
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -53,6 +53,7 @@
 #include "PacketDispatcher.hpp"
 #include "Handlers.hpp"
 #include "Services.hpp"
+#include "TopicTree.hpp"
 
 
 using namespace jianm::broker;
@@ -89,6 +90,7 @@ private:
     tcp::acceptor acceptor_;
 
     jianm::net::ChannelFactory factory_;
+    TopicTree topics_;
     SessionManager sessions_;
     jianm::plugin::HookRegistry hooks_;
 
@@ -112,8 +114,9 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , io_context_(ctx)
     , acceptor_(io_context_, tcp::endpoint(tcp::v4(), opts_.port))
     , factory_(makeFactoryConfig(opts), ctx)
+    , topics_()
     , sessions_()
-    , services_(sessions_, hooks_)
+    , services_(topics_, sessions_, hooks_)
     , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
     std::string logLevel = jianm::common::ConfigMgr::getInstance()["log_level"];
@@ -210,6 +213,7 @@ void BrokerEngine::Impl::listen()
 void BrokerEngine::Impl::registerHandlers()
 {
     dispachter_.registerHandler(PacketType::Connect, std::make_unique<ConnectHandler>());
+    dispachter_.registerHandler(PacketType::Publish, std::make_unique<PublishHandler>());
 }
 
 void BrokerEngine::Impl::onPacket(std::shared_ptr<ClientContext> ctx, const jianm::protocol::PacketPtr &packet)
@@ -229,6 +233,10 @@ void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const st
     if (!ctx) {
         std::lock_guard<std::mutex> lock(channel_mtx_);
         channels_.erase(channel.get());
+    }
+    else {
+        JM_LOG_INFO("onClose not found ctx");
+        return;
     }
     
     const std::string& cid = ctx->client_id;
