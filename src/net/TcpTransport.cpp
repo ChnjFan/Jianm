@@ -52,10 +52,9 @@ void TcpTransport::asyncReadSome(std::vector<uint8_t> &buffer, const size_t read
     auto self = shared_from_this();
 
     // Ensure the vector's logical size covers the region we want to read into.
-    // Use the larger of current size or (readSize + totalSize) to preserve
-    // already-read bytes (e.g. header + remaining length before payload).
-    if (buffer.size() < readSize + totalSize) {
-        buffer.resize(readSize + totalSize);
+    // totalSize is the absolute end position, not a relative length.
+    if (buffer.size() < totalSize) {
+        buffer.resize(totalSize);
     }
 
     socket_.async_read_some(asio::buffer(buffer.data() + readSize, totalSize - readSize),

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-31 10:29:06
+ * Last Modified: 2026-09-02 22:59:55
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -405,24 +405,89 @@ PacketPtr Codec::deserializePublish(const std::vector<uint8_t> &buffer)
     return packet;
 }
 
-PacketPtr jianm::protocol::Codec::deserializePubAck(const std::vector<uint8_t> &buffer)
+PacketPtr Codec::deserializePubAck(const std::vector<uint8_t> &buffer)
 {
     return deserializeAckPacket(buffer);
 }
 
-PacketPtr jianm::protocol::Codec::deserializePubRec(const std::vector<uint8_t> &buffer)
+PacketPtr Codec::deserializePubRec(const std::vector<uint8_t> &buffer)
 {
     return deserializeAckPacket(buffer);
 }
 
-PacketPtr jianm::protocol::Codec::deserializePubRel(const std::vector<uint8_t> &buffer)
+PacketPtr Codec::deserializePubRel(const std::vector<uint8_t> &buffer)
 {
     return deserializeAckPacket(buffer);
 }
 
-PacketPtr jianm::protocol::Codec::deserializePubComp(const std::vector<uint8_t> &buffer)
+PacketPtr Codec::deserializePubComp(const std::vector<uint8_t> &buffer)
 {
     return deserializeAckPacket(buffer);
+}
+
+/**
+ * @brief Deserialize SUBSCRIBE
+ * 
+ * @param buffer 
+ * @return PacketPtr 
+ * 
+ * |   Bit    |  7  |  6  |  5  |  4  |  3  |  2  |  1  |   0    |  <-- Fixed Header
+ * |----------|-----------------------|--------------------------|
+ * | Byte 1   |    MQTT type = 8      |  0  |  0  |  1  |   0    |
+ * |----------|--------------------------------------------------|
+ * | Byte 2   |            Remaining Length                      |
+ * |----------|--------------------------------------------------|  <-- Variable Header
+ * | Byte 3   |        Packet Identifier MSB                     |
+ * |----------|--------------------------------------------------|
+ * | Byte 4   |        Packet Identifier LSB                     |
+ * |----------|--------------------------------------------------|  <-- Payload (one or more Topic Filter + QoS)
+ * | Byte 5~6 |        Topic Filter Length (MSB/LSB)             |
+ * |----------|--------------------------------------------------|
+ * | Byte 7.. |        Topic Filter (UTF-8 encoded string)       |
+ * |----------|--------------------------------------------------|
+ * | Byte n+1 |        Requested QoS                             |
+ * |----------|--------------------------------------------------|
+ * |   ...    |        (repeats for each Topic Filter)           |
+ */
+PacketPtr Codec::deserializeSubscribe(const std::vector<uint8_t> &buffer)
+{
+    size_t index = 0;
+    PacketPtr packet = std::make_shared<Packet>();
+    packet->type = PacketType::Subscribe;
+    auto& sub = packet->body.emplace<SubscribePacket>();
+
+    Header header;
+    header.byte = readByte(buffer, index);
+
+    // Specification requirement [MQTT‑3.8.1‑1]:
+    // Bits 3, 2, 1 and 0 of the fixed header in the SUBSCRIBE packet
+    // are reserved and MUST be set to 0, 0, 1 and 0 respectively;
+    // otherwise, the server MUST treat it as malformed and close the connection.
+    if (header.byte != MQTT_SUBSCRIBE_BYTE) {
+        throw std::runtime_error("SUBSCRIBE flags");
+    }
+
+    size_t remainingLength = decodeRemainingLength(buffer, index);
+    if (index + remainingLength > buffer.size()) {
+        throw std::runtime_error("SUBSCRIBE remaining length overflow");
+    }
+
+    const size_t packetEnd = index + remainingLength;
+
+    sub.packet_id = readUint16(buffer, index);
+    while (index < packetEnd) {
+        SubscribeEntry entry;
+        readString16(buffer, index, entry.filter);
+        if (!jianm::common::is_valid_utf8(entry.filter)) {
+            throw std::runtime_error("SUBSCRIBE topic filter is not utf-8");
+        }
+        entry.qos = static_cast<Qos>(readByte(buffer, index));
+        if (static_cast<uint8_t>(entry.qos) > static_cast<uint8_t>(Qos::ExactlyOnce)) {
+            throw std::runtime_error("SUBSCRIBE qos");
+        }
+        sub.entries.push_back(std::move(entry));
+    }
+    return packet;
 }
 
 bool Codec::serializePacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
@@ -434,7 +499,7 @@ bool Codec::serializePacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
     return false;
 }
 
-bool jianm::protocol::Codec::serializeAckPacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializeAckPacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     if (pkt->type == PacketType::Pubrel) {
         writeByte(buffer, MQTT_PUBREL_BYTE);
@@ -485,7 +550,7 @@ bool Codec::serializeConnack(PacketPtr pkt, std::vector<uint8_t> &buffer)
     return true;
 }
 
-bool jianm::protocol::Codec::serializePublish(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializePublish(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     Header header{0};
     header.bits.type = static_cast<uint8_t>(PacketType::Publish);
@@ -512,27 +577,39 @@ bool jianm::protocol::Codec::serializePublish(PacketPtr pkt, std::vector<uint8_t
     return true;
 }
 
-bool jianm::protocol::Codec::serializePubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializePubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     return serializeAckPacket(pkt, buffer);
 }
 
-bool jianm::protocol::Codec::serializePubRec(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializePubRec(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     return serializeAckPacket(pkt, buffer);
 }
 
-bool jianm::protocol::Codec::serializePubRel(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializePubRel(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     return serializeAckPacket(pkt, buffer);
 }
 
-bool jianm::protocol::Codec::serializePubComp(PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializePubComp(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     return serializeAckPacket(pkt, buffer);
 }
 
-size_t jianm::protocol::Codec::calcPublishRemainingLength(const PublishPacket &pkt)
+bool Codec::serializeSubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    const auto& sa = std::get<SubackPacket>(pkt->body);
+    writeByte(buffer, MQTT_SUBACK_BYTE);
+    encodeRemainingLength(buffer, 2 + sa.granted.size());
+    writeUint16(buffer, sa.packet_id);
+    for (const auto& qos : sa.granted) {
+        writeByte(buffer, qos);
+    }
+    return true;
+}
+
+size_t Codec::calcPublishRemainingLength(const PublishPacket &pkt)
 {
     int length = 0;
 

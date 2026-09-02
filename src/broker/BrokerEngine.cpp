@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 21:36:03
+ * Last Modified: 2026-09-02 22:40:06
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -214,6 +214,7 @@ void BrokerEngine::Impl::registerHandlers()
 {
     dispachter_.registerHandler(PacketType::Connect, std::make_unique<ConnectHandler>());
     dispachter_.registerHandler(PacketType::Publish, std::make_unique<PublishHandler>());
+    dispachter_.registerHandler(PacketType::Subscribe, std::make_unique<SubscribeHandler>());
 }
 
 void BrokerEngine::Impl::onPacket(std::shared_ptr<ClientContext> ctx, const jianm::protocol::PacketPtr &packet)

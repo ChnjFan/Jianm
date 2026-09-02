@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:34:40
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 17:56:34
+ * Last Modified: 2026-09-02 22:30:54
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -52,7 +52,7 @@ struct Session
 {
     std::string client_id;
     bool clean_session{true};
-    std::vector<Subscription> subscriptions;
+    std::vector<Subscription> subscriptions;    // List of subscriptions for this session
 };
 
 }  // namespace jianm

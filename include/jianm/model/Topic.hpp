@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 21:03:10
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-31 10:00:26
+ * Last Modified: 2026-09-02 22:22:36
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -55,9 +55,19 @@ inline std::vector<std::string> splitTopic(const std::string& topic) {
     }
     return out;
 }
-    
+
+/**
+ * @brief Check if a topic name is invalid according to MQTT rules.
+ * 
+ * @param topic 
+ * @return true 
+ * @return false 
+ * 
+ * MQTT 3.1.1 specification:
+ * - PUBLISH Topic names must not contain wildcard characters ('+' or '#').
+ */
 inline bool isTopicNameInvalid(const std::string& topic) {
-    if (topic.empty()) return false;
+    if (topic.empty()) return true;
     for (auto c : topic) {
         // Wildcards are not allowed in published topics
         if (c == '+' || c == '#') return true;
@@ -65,5 +75,35 @@ inline bool isTopicNameInvalid(const std::string& topic) {
     return false;
 }
 
+/**
+ * @brief Check if a topic filter is invalid according to MQTT rules.
+ * 
+ * @param filter 
+ * @return true 
+ * @return false 
+ * 
+ * MQTT 3.1.1 specification:
+ * - SUBSCRIBE Topic filters can contain wildcards, but they must follow specific rules:
+ * - The multi-level wildcard '#' must be the last character in the filter
+ *       and must be preceded by a '/' if it's not the only character.
+ * - The single-level wildcard '+' must occupy an entire level of the filter
+ *       and must be either the only character in that level or surrounded by '/'.
+ * 
+ */
+inline bool isTopicFilterInvalid(const std::string& filter) {
+    if (filter.empty()) return true;
+    const auto toks = splitTopic(filter);
+    for (size_t i = 0; i < toks.size(); ++i) {
+        const auto& t = toks[i];
+        if (t == "#") {
+            if (i != toks.size() - 1) return false;
+        } else if (t == "+") {
+            continue;  // Independent "+" legal
+        } else if (t.find_first_of("+#") != std::string::npos) {
+            return true;  // Wildcards mixed within a segment, e.g., "a#"/"b+c"
+        }
+    }
+    return false;
+}
 
 } // namespace jianm

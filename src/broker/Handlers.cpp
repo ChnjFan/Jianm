@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-31 09:07:46
+ * Last Modified: 2026-09-02 22:36:25
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -49,6 +49,7 @@
 #include "Services.hpp"
 #include "SessionManager.hpp"
 #include "Router.hpp"
+#include "TopicTree.hpp"
 
 using namespace jianm::broker;
 
@@ -222,3 +223,55 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         connAck(client, PacketType::Pubrec, pub.packet_id);
 }
 
+void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     const std::shared_ptr<Packet> &pkt)
+{
+    const auto& sub = std::get<SubscribePacket>(pkt->body);
+    if (!client->connected) {
+        throw std::runtime_error("SUBSCRIBE before CONNECT");
+    }
+
+    auto out = std::make_shared<Packet>();
+    out->type = PacketType::Suback;
+    auto& sa = out->body.emplace<SubackPacket>();
+
+    sa.packet_id = sub.packet_id;
+
+    Router router(service);
+    for (const auto& entry : sub.entries) {
+        // Process each subscription entry
+        if (isTopicFilterInvalid(entry.filter)) {
+            sa.granted.push_back(0x80); // Failure SUBSCRIBE Topic Filter
+            continue;
+        }
+
+        auto session = client->session.lock();
+        if (!session) {
+            throw std::runtime_error("session not found in SUBSCRIBE");
+        }
+        service.topics.add(session, entry.filter, entry.qos);
+        bool found = false;
+        for (auto& s : session->subscriptions) {
+            if (s.filter == entry.filter) {
+                // Update the QoS of the existing subscription if it already exists
+                s.qos = entry.qos;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            session->subscriptions.push_back({entry.filter, entry.qos});
+        }
+        sa.granted.push_back(static_cast<uint8_t>(entry.qos));
+
+        // TODO: Deliver retained messages to the new subscriber
+    }
+
+    auto channel = client->channel.lock();
+    if (channel) {
+        channel->asyncSend(out);
+    }
+
+    JM_LOG_INFO("client {} subscribed {} topics", client->client_id, sub.entries.size());
+}

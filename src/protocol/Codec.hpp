@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-31 10:28:07
+ * Last Modified: 2026-09-02 22:06:05
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -87,6 +87,7 @@ private:
     static PacketPtr deserializePubRec(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializePubRel(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializePubComp(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializeSubscribe(const std::vector<uint8_t>& buffer);
 
     static bool serializePacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializeAckPacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
@@ -96,6 +97,7 @@ private:
     static bool serializePubRec(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializePubRel(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializePubComp(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializeSubAck(PacketPtr pkt, std::vector<uint8_t>& buffer);
 
     static size_t calcPublishRemainingLength(const PublishPacket& pkt);
 
@@ -108,6 +110,7 @@ private:
         deserializePubRec,
         deserializePubRel,
         deserializePubComp,
+        deserializeSubscribe,
     };
 
     static inline const SerializeFunc encoders_[] = {
@@ -119,6 +122,8 @@ private:
         serializePubRec,
         serializePubRel,
         serializePubComp,
+        nullptr,
+        serializeSubAck,
     };
 };
 
