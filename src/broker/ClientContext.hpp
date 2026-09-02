@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:03:05
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 16:25:00
+ * Last Modified: 2026-08-31 12:09:10
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -37,6 +37,7 @@
 
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <unordered_map>
 
 #include "jianm/model/Qos.hpp"
