@@ -187,11 +187,11 @@ allow_anonymous = true
 | ----------- | ----------- | :--: | ---- |
 | CONNECT     | Client → Server | ✅ | 客户端连接请求 |
 | CONNACK     | Server → Client | ✅ | 连接确认 |
-| PUBLISH     | Client ↔ Server | ❌ | 发布消息 |
-| PUBACK      | Client ↔ Server | ❌ | QoS 1 发布确认 |
-| PUBREC      | Client ↔ Server | ❌ | QoS 2 发布收到 |
-| PUBREL      | Client ↔ Server | ❌ | QoS 2 发布释放 |
-| PUBCOMP     | Client ↔ Server | ❌ | QoS 2 发布完成 |
+| PUBLISH     | Client ↔ Server | ✅ | 发布消息 |
+| PUBACK      | Client ↔ Server | ✅ | QoS 1 发布确认 |
+| PUBREC      | Client ↔ Server | ✅ | QoS 2 发布收到 |
+| PUBREL      | Client ↔ Server | ⚠️ | QoS 2 发布释放（编解码支持，处理流程待完善） |
+| PUBCOMP     | Client ↔ Server | ⚠️ | QoS 2 发布完成（编解码支持，处理流程待完善） |
 | SUBSCRIBE   | Client → Server | ❌ | 订阅主题 |
 | SUBACK      | Server → Client | ❌ | 订阅确认 |
 | UNSUBSCRIBE | Client → Server | ❌ | 取消订阅 |
@@ -200,7 +200,7 @@ allow_anonymous = true
 | PINGRESP    | Server → Client | ❌ | 心跳响应 |
 | DISCONNECT  | Client → Server | ❌ | 断开连接 |
 
-> ✅ 已实现　❌ 待实现
+> ✅ 已实现　⚠️ 部分实现　❌ 待实现
 
 ### 连接特性
 
@@ -221,23 +221,25 @@ allow_anonymous = true
 
 > ✅ 已实现　⚠️ 部分实现　❌ 未实现
 
-### 消息与订阅（待实现）
+### 消息与订阅
 
 | 模块 | 功能 | 状态 | 说明 |
 | ---- | ---- | :--: | ---- |
-| 发布 | PUBLISH 报文解析与路由 | ❌ | 消息发布到订阅者 |
-| 发布 | Retained 消息存储 | ❌ | 保留新订阅者的最后一条消息 |
-| 发布 | QoS 1 消息流 | ❌ | AT_LEAST_ONCE 投递 + PUBACK |
-| 发布 | QoS 2 消息流 | ❌ | EXACTLY_ONCE 四步握手 |
+| 发布 | PUBLISH 报文解析与路由 | ✅ | TopicTree 通配符匹配 + Router 投递 |
+| 发布 | Retained 消息存储 | ⚠️ | 保留消息存储逻辑为 TODO，解析与清除框架已就绪 |
+| 发布 | QoS 1 消息流 | ✅ | AT_LEAST_ONCE 投递 + PUBACK + DUP 重传去重 |
+| 发布 | QoS 2 消息流 | ⚠️ | EXACTLY_ONCE 收到 + PUBREC 完成，PUBREL/PUBCOMP 处理待完善 |
 | 订阅 | SUBSCRIBE/SUBACK | ❌ | 订阅主题 + granted QoS 返回 |
 | 订阅 | UNSUBSCRIBE/UNSUBACK | ❌ | 取消订阅 |
-| 订阅 | Topic 通配符匹配 | ❌ | `+` 单层、`#` 多层通配符 |
+| 订阅 | Topic 通配符匹配 | ✅ | `+` 单层、`#` 多层通配符（TopicTree 实现） |
 | 会话 | 会话状态持久化 | ❌ | CleanSession=0 时保存订阅和 pending 消息 |
 | 会话 | 离线消息队列 | ❌ | CleanSession=0 时缓存离线 QoS 1/2 消息 |
 | 心跳 | PINGREQ/PINGRESP | ❌ | 客户端心跳请求与服务端响应 |
 | 断开 | DISCONNECT 处理 | ❌ | 客户端优雅断开连接 |
 | 遗嘱 | Will Message 发布 | ❌ | 异常断开时向订阅者发布遗嘱消息 |
 | 认证 | 真实认证逻辑 | ❌ | 当前为桩函数（始终返回 true） |
+
+> ✅ 已实现　⚠️ 部分实现　❌ 未实现
 
 ## 插件系统
 

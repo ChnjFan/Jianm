@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-31 09:59:04
+ * Last Modified: 2026-09-02 21:36:03
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -230,7 +230,7 @@ void BrokerEngine::Impl::onPacket(std::shared_ptr<ClientContext> ctx, const jian
 void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const std::string& reason)
 {
     auto ctx = sessions_.byChannel(channel);
-    if (!ctx) {
+    if (ctx) {
         std::lock_guard<std::mutex> lock(channel_mtx_);
         channels_.erase(channel.get());
     }
