@@ -192,15 +192,15 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | PUBLISH     | Client ↔ Server |   ✅   | Publish message |
 | PUBACK      | Client ↔ Server |   ✅   | QoS 1 publish acknowledgment |
 | PUBREC      | Client ↔ Server |   ✅   | QoS 2 publish received |
-| PUBREL      | Client ↔ Server |   ⚠️   | QoS 2 publish release (codec supported, handler pending) |
-| PUBCOMP     | Client ↔ Server |   ⚠️   | QoS 2 publish complete (codec supported, handler pending) |
-| SUBSCRIBE   | Client → Server |   ❌   | Subscribe to topic |
-| SUBACK      | Server → Client |   ❌   | Subscribe acknowledgment |
-| UNSUBSCRIBE | Client → Server |   ❌   | Unsubscribe |
-| UNSUBACK    | Server → Client |   ❌   | Unsubscribe acknowledgment |
-| PINGREQ     | Client → Server |   ❌   | Ping request |
-| PINGRESP    | Server → Client |   ❌   | Ping response |
-| DISCONNECT  | Client → Server |   ❌   | Disconnect |
+| PUBREL      | Client ↔ Server |   ✅   | QoS 2 publish release |
+| PUBCOMP     | Client ↔ Server |   ✅   | QoS 2 publish complete |
+| SUBSCRIBE   | Client → Server |   ✅   | Subscribe to topic |
+| SUBACK      | Server → Client |   ✅   | Subscribe acknowledgment |
+| UNSUBSCRIBE | Client → Server |   ✅   | Unsubscribe |
+| UNSUBACK    | Server → Client |   ✅   | Unsubscribe acknowledgment |
+| PINGREQ     | Client → Server |   ✅   | Ping request |
+| PINGRESP    | Server → Client |   ✅   | Ping response |
+| DISCONNECT  | Client → Server |   ✅   | Disconnect |
 
 > ✅ Implemented　⚠️ Partially implemented　❌ Pending
 
@@ -230,14 +230,14 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Publish | PUBLISH packet parsing & routing | ✅ | TopicTree wildcard matching + Router delivery |
 | Publish | Retained message storage | ⚠️ | Retained storage logic is TODO; parsing and clearing framework ready |
 | Publish | QoS 1 message flow | ✅ | AT_LEAST_ONCE delivery + PUBACK + DUP retransmission dedup |
-| Publish | QoS 2 message flow | ⚠️ | EXACTLY_ONCE receive + PUBREC done; PUBREL/PUBCOMP handling pending |
-| Subscribe | SUBSCRIBE/SUBACK | ❌ | Topic subscription + granted QoS response |
-| Subscribe | UNSUBSCRIBE/UNSUBACK | ❌ | Unsubscribe |
+| Publish | QoS 2 message flow | ✅ | EXACTLY_ONCE four-step handshake (PUBREC → PUBREL → PUBCOMP) |
+| Subscribe | SUBSCRIBE/SUBACK | ✅ | Topic subscription + granted QoS response (with topic filter validation) |
+| Subscribe | UNSUBSCRIBE/UNSUBACK | ✅ | Unsubscribe |
 | Subscribe | Topic wildcard matching | ✅ | `+` single-level, `#` multi-level wildcards (TopicTree implementation) |
 | Session | Session state persistence | ❌ | Save subscriptions and pending messages when CleanSession=0 |
 | Session | Offline message queue | ❌ | Cache offline QoS 1/2 messages when CleanSession=0 |
-| Heartbeat | PINGREQ/PINGRESP | ❌ | Client heartbeat request and server response |
-| Disconnect | DISCONNECT handling | ❌ | Graceful client disconnection |
+| Heartbeat | PINGREQ/PINGRESP | ✅ | Client heartbeat request and server response |
+| Disconnect | DISCONNECT handling | ✅ | Graceful client disconnection |
 | Will | Will Message publishing | ❌ | Publish will message to subscribers on abnormal disconnect |
 | Auth | Real authentication logic | ❌ | Currently a stub (always returns true) |
 
