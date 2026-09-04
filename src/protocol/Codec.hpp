@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:06:05
+ * Last Modified: 2026-09-04 23:03:02
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -81,6 +81,7 @@ private:
 
     static PacketPtr deserializePacket(uint8_t type, const std::vector<uint8_t>& buffer);
     static PacketPtr deserializeAckPacket(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializeEmptyPacket(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializeConnect(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializePublish(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializePubAck(const std::vector<uint8_t>& buffer);
@@ -88,6 +89,10 @@ private:
     static PacketPtr deserializePubRel(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializePubComp(const std::vector<uint8_t>& buffer);
     static PacketPtr deserializeSubscribe(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializeUnsubscribe(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePingReq(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializePingResp(const std::vector<uint8_t>& buffer);
+    static PacketPtr deserializeDisconnect(const std::vector<uint8_t>& buffer);
 
     static bool serializePacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializeAckPacket(PacketPtr pkt, std::vector<uint8_t>& buffer);
@@ -98,6 +103,9 @@ private:
     static bool serializePubRel(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializePubComp(PacketPtr pkt, std::vector<uint8_t>& buffer);
     static bool serializeSubAck(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializeUnsubAck(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializePingResp(PacketPtr pkt, std::vector<uint8_t>& buffer);
+    static bool serializeDisconnect(PacketPtr pkt, std::vector<uint8_t>& buffer);
 
     static size_t calcPublishRemainingLength(const PublishPacket& pkt);
 
@@ -111,6 +119,12 @@ private:
         deserializePubRel,
         deserializePubComp,
         deserializeSubscribe,
+        nullptr,
+        deserializeUnsubscribe,
+        nullptr,
+        deserializePingReq,
+        deserializePingResp,
+        deserializeDisconnect,
     };
 
     static inline const SerializeFunc encoders_[] = {
@@ -124,6 +138,11 @@ private:
         serializePubComp,
         nullptr,
         serializeSubAck,
+        nullptr,
+        serializeUnsubAck,
+        nullptr,
+        serializePingResp,
+        serializeDisconnect,
     };
 };
 

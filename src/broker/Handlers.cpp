@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:36:25
+ * Last Modified: 2026-09-04 23:15:44
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -274,4 +274,86 @@ void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientCon
     }
 
     JM_LOG_INFO("client {} subscribed {} topics", client->client_id, sub.entries.size());
+}
+
+void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     const std::shared_ptr<Packet> &pkt)
+{
+    const auto& unSub = std::get<UnsubscribePacket>(pkt->body);
+    for (const auto& filter : unSub.topics) {
+        auto session = client->session.lock();
+        if (!session) {
+            throw std::runtime_error("session not found in UNSUBSCRIBE");
+        }
+        service.topics.remove(session, filter);
+        session->subscriptions.erase(
+            std::remove_if(session->subscriptions.begin(), session->subscriptions.end(),
+                [&filter](const Subscription& s) { return s.filter == filter; }),
+            session->subscriptions.end());
+    }
+
+    // Specification requirement [MQTT-3.10.1-2]:
+    // If the Server receives an UNSUBSCRIBE Packet containing a Topic Filter that does not match any
+    // existing subscription, the Server MUST process the UNSUBSCRIBE Packet as normal.
+    auto out = std::make_shared<Packet>();
+    out->type = PacketType::Unsuback;
+    auto& ap = out->body.emplace<AckPacket>();
+    ap.packet_id = unSub.packet_id;
+    auto channel = client->channel.lock();
+    if (channel) {
+        channel->asyncSend(out);
+    }
+}
+
+void AckHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     const std::shared_ptr<Packet> &pkt)
+{
+    const auto& ack = std::get<AckPacket>(pkt->body);
+    switch (pkt->type) {
+        case PacketType::Puback:    // QoS 1 acknowledge
+            client->awaiting_puback.erase(ack.packet_id);
+            client->out_inflight.erase(ack.packet_id);
+            break;
+        case PacketType::Pubrec:    // QoS 2 receive
+        {
+            auto it = client->out_inflight.find(ack.packet_id);
+            if (it != client->out_inflight.end() && it->second.qos == Qos::ExactlyOnce) {
+                it->second.pubrel_sent = true;
+                connAck(client, PacketType::Pubrel, ack.packet_id);
+            }
+        }
+            break;
+        case PacketType::Pubrel:    // QoS 2 release
+            client->awaiting_pubrel.erase(ack.packet_id);
+            connAck(client, PacketType::Pubcomp, ack.packet_id);
+            break;
+        case PacketType::Pubcomp:   // QoS 2 complete
+            client->out_inflight.erase(ack.packet_id);
+            break;
+        default:
+            JM_LOG_WARN("unexpected ACK packet type: {}", static_cast<int>(pkt->type));
+            break;
+    }
+}
+
+void PingreqHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
+{
+    auto out = std::make_shared<Packet>();
+    out->type = PacketType::Pingresp;
+    out->body.emplace<EmptyPacket>();
+    auto channel = client->channel.lock();
+    if (channel) {
+        channel->asyncSend(out);
+    }
+}
+
+void DisconnectHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
+{
+    client->clean_disconnect = true;
+    auto channel = client->channel.lock();
+    if (channel) {
+        channel->requestClose("DISCONNECT received");
+    }
 }

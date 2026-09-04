@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:40:06
+ * Last Modified: 2026-09-04 23:16:40
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -215,6 +215,13 @@ void BrokerEngine::Impl::registerHandlers()
     dispachter_.registerHandler(PacketType::Connect, std::make_unique<ConnectHandler>());
     dispachter_.registerHandler(PacketType::Publish, std::make_unique<PublishHandler>());
     dispachter_.registerHandler(PacketType::Subscribe, std::make_unique<SubscribeHandler>());
+    dispachter_.registerHandler(PacketType::Unsubscribe, std::make_unique<UnsubscribeHandler>());
+    dispachter_.registerHandler(PacketType::Puback, std::make_unique<AckHandler>());
+    dispachter_.registerHandler(PacketType::Pubrec, std::make_unique<AckHandler>());
+    dispachter_.registerHandler(PacketType::Pubrel, std::make_unique<AckHandler>());
+    dispachter_.registerHandler(PacketType::Pubcomp, std::make_unique<AckHandler>());
+    dispachter_.registerHandler(PacketType::Pingreq, std::make_unique<PingreqHandler>());
+    dispachter_.registerHandler(PacketType::Disconnect, std::make_unique<DisconnectHandler>());
 }
 
 void BrokerEngine::Impl::onPacket(std::shared_ptr<ClientContext> ctx, const jianm::protocol::PacketPtr &packet)

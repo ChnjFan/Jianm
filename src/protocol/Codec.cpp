@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:59:55
+ * Last Modified: 2026-09-04 23:06:50
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -230,6 +230,24 @@ PacketPtr Codec::deserializeAckPacket(const std::vector<uint8_t> &buffer)
     }
     
     ack.packet_id = readUint16(buffer, index);
+    return packet;
+}
+
+PacketPtr Codec::deserializeEmptyPacket(const std::vector<uint8_t> &buffer)
+{
+    size_t index = 0;
+    Header header;
+    header.byte = readByte(buffer, index);
+    const uint8_t flags = header.byte & 0x0f;
+
+    if (flags != 0) {
+        throw std::runtime_error("Empty packet flags error");
+    }
+
+    PacketPtr packet = std::make_shared<Packet>();
+    packet->type = static_cast<PacketType>(header.bits.type);
+    packet->body.emplace<EmptyPacket>();
+
     return packet;
 }
 
@@ -490,6 +508,76 @@ PacketPtr Codec::deserializeSubscribe(const std::vector<uint8_t> &buffer)
     return packet;
 }
 
+/**
+ * @brief Deserialize UNSUBSCRIBE
+ * 
+ * @param buffer 
+ * @return PacketPtr 
+ * 
+ * |   Bit    |  7  |  6  |  5  |  4  |  3  |  2  |  1  |   0    |  <-- Fixed Header
+ * |----------|-----------------------|--------------------------|
+ * | Byte 1   |    MQTT type = 10     |  0  |  0  |  1  |   0    |
+ * |----------|--------------------------------------------------|
+ * | Byte 2   |            Remaining Length                      |
+ * |----------|--------------------------------------------------|  <-- Variable Header
+ * | Byte 3   |        Packet Identifier MSB                     |
+ * |----------|--------------------------------------------------|
+ * | Byte 4   |        Packet Identifier LSB                     |
+ * |----------|--------------------------------------------------|  <-- Payload (one or more Topic Filter)
+ * | Byte 5~6 |        Topic Filter Length (MSB/LSB)             |
+ * |----------|--------------------------------------------------|
+ * | Byte 7.. |        Topic Filter (UTF-8 encoded string)       |
+ * |----------|--------------------------------------------------|
+ * |   ...    |        (repeats for each Topic Filter)           |
+ */
+PacketPtr Codec::deserializeUnsubscribe(const std::vector<uint8_t> &buffer)
+{
+    size_t index = 0;
+    PacketPtr packet = std::make_shared<Packet>();
+    packet->type = PacketType::Unsubscribe;
+    auto& unSub = packet->body.emplace<UnsubscribePacket>();
+
+    Header header;
+    header.byte = readByte(buffer, index);
+
+    if (header.byte != MQTT_UNSUBSCRIBE_BYTE) {
+        throw std::runtime_error("UNSUBSCRIBE flags");
+    }
+
+    size_t remainingLength = decodeRemainingLength(buffer, index);
+    if (index + remainingLength > buffer.size()) {
+        throw std::runtime_error("UNSUBSCRIBE remaining length overflow");
+    }
+
+    const size_t packetEnd = index + remainingLength;
+
+    unSub.packet_id = readUint16(buffer, index);
+    while (index < packetEnd) {
+        std::string filter;
+        readString16(buffer, index, filter);
+        if (!jianm::common::is_valid_utf8(filter)) {
+            throw std::runtime_error("UNSUBSCRIBE topic filter is not utf-8");
+        }
+        unSub.topics.push_back(std::move(filter));
+    }
+    return packet;
+}
+
+PacketPtr Codec::deserializePingReq(const std::vector<uint8_t> &buffer)
+{
+    return deserializeEmptyPacket(buffer);
+}
+
+PacketPtr Codec::deserializePingResp(const std::vector<uint8_t> &buffer)
+{
+    return deserializeEmptyPacket(buffer);
+}
+
+PacketPtr Codec::deserializeDisconnect(const std::vector<uint8_t> &buffer)
+{
+    return deserializeEmptyPacket(buffer);
+}
+
 bool Codec::serializePacket(PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     auto type = static_cast<uint8_t>(pkt->type);
@@ -606,6 +694,50 @@ bool Codec::serializeSubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
     for (const auto& qos : sa.granted) {
         writeByte(buffer, qos);
     }
+    return true;
+}
+
+/**
+ * @brief Serialize the UNSUBACK packet
+ * 
+ * @param pkt 
+ * @param buffer 
+ * @return true 
+ * @return false 
+ * 
+ * |   Bit    |  7  |  6  |  5  |  4  |  3  |  2  |  1  |   0    |  <-- Fixed Header
+ * |----------|-----------------------|--------------------------|
+ * | Byte 1   |    MQTT type = 11     |  0  |  0  |  0  |   0    |
+ * |----------|--------------------------------------------------|
+ * | Byte 2   |            Remaining Length = 2                  |
+ * |----------|--------------------------------------------------|  <-- Variable Header
+ * | Byte 3   |        Packet Identifier MSB                     |
+ * |----------|--------------------------------------------------|
+ * | Byte 4   |        Packet Identifier LSB                     |
+ * |----------|--------------------------------------------------|
+ * |                     (No Payload)                            |
+
+ */
+bool Codec::serializeUnsubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    const auto& ua = std::get<AckPacket>(pkt->body);
+    writeByte(buffer, MQTT_UNSUBACK_BYTE);
+    writeByte(buffer, 2); // remaining length
+    writeUint16(buffer, ua.packet_id);
+    return true;
+}
+
+bool Codec::serializePingResp([[maybe_unused]]PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    writeByte(buffer, MQTT_PINGRESP_BYTE);
+    writeByte(buffer, 0); // remaining length
+    return true;
+}
+
+bool Codec::serializeDisconnect([[maybe_unused]]PacketPtr pkt, std::vector<uint8_t> &buffer)
+{
+    writeByte(buffer, MQTT_DISCONNECT_BYTE);
+    writeByte(buffer, 0); // remaining length
     return true;
 }
 

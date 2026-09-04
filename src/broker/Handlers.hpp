@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:31:08
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:12:28
+ * Last Modified: 2026-09-04 23:13:11
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -60,6 +60,31 @@ public:
 };
 
 class SubscribeHandler : public IPacketHandler {
+public:
+    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
+        const std::shared_ptr<Packet> &pkt) override;
+};
+
+class UnsubscribeHandler : public IPacketHandler {
+public:
+    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
+        const std::shared_ptr<Packet> &pkt) override;
+};
+
+class PingreqHandler : public IPacketHandler {
+public:
+    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
+        const std::shared_ptr<Packet> &pkt) override;
+};
+
+class DisconnectHandler : public IPacketHandler {
+public:
+    void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
+        const std::shared_ptr<Packet> &pkt) override;
+};
+
+/// @brief Handler for PUBACK, PUBREC, PUBREL, PUBCOMP, and UNSUBACK packets.
+class AckHandler : public IPacketHandler {
 public:
     void handle(BrokerServices& service, std::shared_ptr<ClientContext> &client,
         const std::shared_ptr<Packet> &pkt) override;

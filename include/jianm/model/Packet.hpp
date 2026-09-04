@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 15:31:18
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:23:51
+ * Last Modified: 2026-09-04 23:03:55
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -50,6 +50,10 @@ constexpr uint8_t MQTT_CONNACK_BYTE = 0x20;
 constexpr uint8_t MQTT_PUBREL_BYTE = 0x62;
 constexpr uint8_t MQTT_SUBSCRIBE_BYTE = 0x82;
 constexpr uint8_t MQTT_SUBACK_BYTE = 0x90;
+constexpr uint8_t MQTT_UNSUBSCRIBE_BYTE = 0xA2;
+constexpr uint8_t MQTT_UNSUBACK_BYTE = 0xB0;
+constexpr uint8_t MQTT_PINGRESP_BYTE = 0xD0;
+constexpr uint8_t MQTT_DISCONNECT_BYTE = 0xE0;
 
 /// @brief Message Type (MQTT 3.1.1 Control Packet)
 enum class PacketType : uint8_t {

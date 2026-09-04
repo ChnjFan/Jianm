@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-27 17:49:24
+ * Last Modified: 2026-09-04 23:05:46
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -94,6 +94,11 @@ bool Channel::asyncSend(const PacketPtr &packet)
         std::vector<uint8_t> buffer;
         if (jianm::protocol::Codec::encode(packet, buffer)) {
             transport_->asyncSend(std::move(buffer));
+        }
+        else {
+            JM_LOG_ERROR("Channel {} failed to encode packet type {}", peer_, static_cast<int>(packet->type));
+            requestClose("failed to encode packet");
+            return false;
         }
     }
     catch(const std::exception& e)
