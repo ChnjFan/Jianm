@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:22:09
+ * Last Modified: 2026-09-05 14:40:04
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -266,7 +266,12 @@ void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientCon
         }
         sa.granted.push_back(static_cast<uint8_t>(entry.qos));
 
-        // TODO: Deliver retained messages to the new subscriber
+        // Deliver retained messages to the new subscriber
+        for (const auto& retianed : service.retains.all()) {
+            if (isTopicMatchesFilter(entry.filter, retianed.topic)) {
+                router.deliver(client, retianed, entry.qos, true);
+            }
+        }
     }
 
     auto channel = client->channel.lock();

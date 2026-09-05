@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 21:03:10
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-02 22:22:36
+ * Last Modified: 2026-09-05 14:38:41
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -104,6 +104,33 @@ inline bool isTopicFilterInvalid(const std::string& filter) {
         }
     }
     return false;
+}
+
+/**
+ * @brief Does the filter match the topic
+ * 
+ * @param filters 
+ * @param topics 
+ * @return true 
+ * @return false 
+ * 
+ * '#' match all remaining levels, including parent levels
+ */
+inline bool matchTokens(const std::vector<std::string>& filters, const std::vector<std::string>& topics,
+                        size_t fi = 0, size_t ti = 0) {
+    if (fi == filters.size()) return ti == topics.size();
+    if (filters[fi] == "#") return true;
+    if (filters[fi] == "+") {
+        if (ti >= topics.size()) return false;
+        return matchTokens(filters, topics, fi + 1, ti + 1);
+    }
+    if (ti >= topics.size() || filters[fi] != topics[ti])
+        return false;
+    return matchTokens(filters, topics, fi + 1, ti + 1);
+}
+
+inline bool isTopicMatchesFilter(const std::string& filter, const std::string& topic) {
+    return matchTokens(splitTopic(filter), splitTopic(topic));
 }
 
 } // namespace jianm
