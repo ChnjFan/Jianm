@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 13:45:11
+ * Last Modified: 2026-09-05 14:05:18
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -167,7 +167,8 @@ void SessionManager::checkRetransmission(const time_point& now, Router& router)
             if (out.retry_count >= ctx->max_retries) {
                 JM_LOG_WARN("client {} message {} to topic {} retry limit reached, drop it",
                      ctx->client_id, pid, out.topic);
-                continue;
+                channel->requestClose("retry limit reached");
+                break;
             }
             if (now - out.sent_time >= ctx->retry_interval) {
                 JM_LOG_INFO("client {} message {} to topic {} retrying, count {}",

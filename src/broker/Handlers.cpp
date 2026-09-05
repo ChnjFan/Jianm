@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 10:34:38
+ * Last Modified: 2026-09-05 14:22:09
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -50,6 +50,7 @@
 #include "SessionManager.hpp"
 #include "Router.hpp"
 #include "TopicTree.hpp"
+#include "RetainStore.hpp"
 
 using namespace jianm::broker;
 
@@ -202,7 +203,7 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
 
     // Empty retained messages shall be cleared instead of being forwarded.
     if (pub.retain && pub.payload.empty()) {
-        // TODO: clear retained messages, do not forward
+        service.retains.clear(pub.topic);
         if (pub.qos == Qos::AtLeastOnce)
             connAck(client, PacketType::Puback, pub.packet_id);
         else if (pub.qos == Qos::ExactlyOnce)
@@ -212,7 +213,7 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
 
     Message msg{pub.topic, pub.payload, pub.qos, pub.retain, client->client_id};
     if (pub.retain) {
-        // TODO: store retain message
+        service.retains.store(pub.topic, msg);
     }
     Router router(service);
     router.route(msg);

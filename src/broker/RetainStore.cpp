@@ -1,10 +1,10 @@
 /*
- * File: /Services.hpp
+ * File: /RetainStore.cpp
  * Project: broker
- * Created Date: 2026-08-23 15:58:59
+ * Created Date: 2026-09-05 14:10:23
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:15:36
+ * Last Modified: 2026-09-05 14:13:16
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,40 +33,26 @@
  * HISTORY:
  */
 
-#pragma once
+#include "RetainStore.hpp"
 
-#include <atomic>
-#include <cstdint>
-#include <functional>
-#include <string>
+using namespace jianm::broker;
 
-namespace jianm {
-namespace plugin { class HookRegistry; }
-namespace broker {
-
-class SessionManager;
-class TopicTree;
-class RetainStore;
-
-/**
- * @brief Service Aggregation
- *
- * Package all core dependencies and pass them to the Handler (dependency injection for convenient mock testing)
- */
-struct BrokerServices
+void RetainStore::store(const std::string &topic, const Message &msg)
 {
-    TopicTree& topics;
-    SessionManager& sessions;
-    RetainStore& retains;
-    plugin::HookRegistry& hooks;
+    map_[topic] = msg;
+}
 
-    std::atomic<uint64_t> received{0};
-    std::atomic<uint64_t> delivered{0};
+void RetainStore::clear(const std::string &topic)
+{
+    map_.erase(topic);
+}
 
-    BrokerServices(TopicTree& t, SessionManager& s, RetainStore& r, plugin::HookRegistry& h)
-        : topics(t), sessions(s), retains(r), hooks(h) {}
-};
-
-    
-} // namespace broker
-} // namespace jianm
+std::vector<jianm::Message> RetainStore::all() const
+{
+    std::vector<Message> out;
+    out.reserve(map_.size());
+    for (const auto& [topic, msg] : map_) {
+        out.push_back(msg);
+    }
+    return out;
+}

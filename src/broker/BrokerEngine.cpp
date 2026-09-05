@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 13:30:07
+ * Last Modified: 2026-09-05 14:19:07
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -56,6 +56,7 @@
 #include "TopicTree.hpp"
 #include "Router.hpp"
 #include "TickServiice.hpp"
+#include "RetainStore.hpp"
 
 
 using namespace jianm::broker;
@@ -96,6 +97,7 @@ private:
     jianm::net::ChannelFactory factory_;
     TopicTree topics_;
     SessionManager sessions_;
+    RetainStore retians_;
     jianm::plugin::HookRegistry hooks_;
 
     BrokerServices services_;
@@ -121,7 +123,8 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , factory_(makeFactoryConfig(opts), ctx)
     , topics_()
     , sessions_()
-    , services_(topics_, sessions_, hooks_)
+    , retians_()
+    , services_(topics_, sessions_, retians_, hooks_)
     , tick_service_(io_context_, opts_.tick_interval, services_)
     , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
@@ -260,7 +263,11 @@ void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const st
     // no publishing for take‑over or normal disconnection
     if (ctx->connected && !ctx->clean_disconnect && !ctx->taken_over && ctx->will.valid) {
         Router router(services_);
-        router.route({ctx->will.topic, ctx->will.payload, ctx->will.qos, ctx->will.retain, cid});
+        Message will{ctx->will.topic, ctx->will.payload, ctx->will.qos, ctx->will.retain, cid};
+        if (ctx->will.retain) {
+            services_.retains.store(ctx->will.topic, will);
+        }
+        router.route(will);
         JM_LOG_INFO("will published for {}", cid);
     }
 
