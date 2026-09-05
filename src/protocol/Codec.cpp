@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-04 23:06:50
+ * Last Modified: 2026-09-05 22:47:32
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -176,8 +176,8 @@ int Codec::writeString16(std::vector<uint8_t> &buffer, const std::string &value)
 PacketPtr Codec::deserializePacket(uint8_t type, const std::vector<uint8_t> &buffer)
 {
     size_t size = buffer.size();
-    if (size < 2) {
-        return nullptr;
+    if (size < 2 || size > MaxPacketSize) {
+        throw std::runtime_error("packet size error");
     }
 
     if (type < sizeof(decoders_) / sizeof(DeserializeFunc) && decoders_[type]) {
