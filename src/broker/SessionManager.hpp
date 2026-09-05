@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 13:45:16
+ * Last Modified: 2026-09-05 22:02:57
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -54,10 +54,12 @@ namespace broker {
 using clock = std::chrono::steady_clock;
 using time_point = std::chrono::time_point<clock>;
 
+using SessionPtr = std::shared_ptr<jianm::Session>;
+
 class SessionManager
 {
 public:
-    SessionManager();
+    SessionManager(TopicTree& t) : topoics_(t) {}
     ~SessionManager();
 
     void start();
@@ -72,7 +74,7 @@ public:
     void removeChannel(const jianm::net::ChannelPtr& channel);
 
     bool sessionExists(const std::string& client_id) const;
-    std::shared_ptr<jianm::Session> getSession(const std::string& client_id, bool clean);
+    SessionPtr getSession(const std::string& client_id, bool clean);
 
     void checkKeepalive(const time_point& now, const std::vector<jianm::net::ChannelPtr>& snapshot);
     void checkRetransmission(const time_point& now, Router& router);
@@ -82,10 +84,13 @@ public:
     /// Number of stored sessions (sessions_ size)
     size_t sessionCount() const;
 
-private:
-    void dropSession(const std::shared_ptr<jianm::Session>& session);
+    std::function<void(const SessionPtr&)> on_session_drop;
 
-    std::unordered_map<std::string, std::shared_ptr<jianm::Session>> sessions_;
+private:
+    void dropSession(const SessionPtr& session);
+
+    TopicTree& topoics_;
+    std::unordered_map<std::string, SessionPtr> sessions_;
     std::unordered_map<jianm::net::Channel*, std::shared_ptr<ClientContext>> by_channel_;
     std::unordered_map<std::string, std::shared_ptr<ClientContext>> by_id_;
 };

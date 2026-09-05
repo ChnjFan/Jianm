@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 19:20:16
+ * Last Modified: 2026-09-05 22:03:08
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -57,6 +57,7 @@
 #include "Router.hpp"
 #include "TickServiice.hpp"
 #include "RetainStore.hpp"
+#include "Outbox.hpp"
 
 
 using namespace jianm::broker;
@@ -98,6 +99,7 @@ private:
     TopicTree topics_;
     SessionManager sessions_;
     RetainStore retians_;
+    Outbox outbox_;
     jianm::plugin::HookRegistry hooks_;
 
     BrokerServices services_;
@@ -122,9 +124,10 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , acceptor_(io_context_, tcp::endpoint(tcp::v4(), opts_.port))
     , factory_(makeFactoryConfig(opts), ctx)
     , topics_()
-    , sessions_()
+    , sessions_(topics_)
     , retians_()
-    , services_(topics_, sessions_, retians_, hooks_)
+    , outbox_()
+    , services_(topics_, sessions_, retians_, outbox_, hooks_)
     , tick_service_(io_context_, opts_.tick_interval, services_)
     , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
@@ -135,6 +138,10 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     if (logOutput.empty())
         logOutput = "console";
     jianm::common::logger_init(logLevel, logOutput);
+
+    sessions_.on_session_drop = [this](const SessionPtr& session) {
+        outbox_.clear(session);
+    };
 
     registerHandlers();
     registerTickTasks();

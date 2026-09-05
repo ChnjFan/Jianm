@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:05:18
+ * Last Modified: 2026-09-05 22:05:24
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -41,12 +41,9 @@
 #include "common/Logger.hpp"
 #include "ClientContext.hpp"
 #include "Router.hpp"
+#include "TopicTree.hpp"
 
 using namespace jianm::broker;
-
-SessionManager::SessionManager()
-{
-}
 
 SessionManager::~SessionManager()
 {
@@ -125,7 +122,7 @@ size_t SessionManager::sessionCount() const
     return sessions_.size();
 }
 
-std::shared_ptr<jianm::Session> SessionManager::getSession(const std::string &client_id, bool clean)
+SessionPtr SessionManager::getSession(const std::string &client_id, bool clean)
 {
     if (clean) {
         auto it = sessions_.find(client_id);
@@ -179,11 +176,14 @@ void SessionManager::checkRetransmission(const time_point& now, Router& router)
     }
 }
 
-void SessionManager::dropSession(const std::shared_ptr<jianm::Session> &session)
+void SessionManager::dropSession(const SessionPtr &session)
 {
     for (const auto& sub : session->subscriptions) {
-        // TODO: Clear the session subscription list
+        topoics_.remove(session, sub.filter);
         (void)sub;
     }
     sessions_.erase(session->client_id);
+    // Synchronously clean up external resources
+    // e.g., the offline queue for this session in Outbox
+    if (on_session_drop) on_session_drop(session);
 }

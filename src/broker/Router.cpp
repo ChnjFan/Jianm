@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 22:10:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 13:57:17
+ * Last Modified: 2026-09-05 22:14:36
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -40,6 +40,7 @@
 #include "common/Logger.hpp"
 #include "TopicTree.hpp"
 #include "SessionManager.hpp"
+#include "Outbox.hpp"
 
 using namespace jianm::broker;
 
@@ -53,10 +54,20 @@ void Router::route(const Message &msg)
         auto sub_session = m.session.lock();
         if (!sub_session) continue;
         auto subscriber = services_.sessions.byId(sub_session->client_id);
-        if (!subscriber || !subscriber->connected || !subscriber->channel.lock())
-            continue;
+        if (!subscriber)
+            return;
+
+        auto session = subscriber->session.lock();
         auto sub_channel = subscriber->channel.lock();
-        deliver(subscriber, msg, m.qos, false);
+        const Qos effectiveQos = static_cast<uint8_t>(m.qos) < static_cast<uint8_t>(msg.qos)
+                                    ? m.qos : msg.qos;
+        if (subscriber && subscriber->connected
+            && sub_channel && !sub_channel->isClosing()) {
+            deliver(subscriber, msg, m.qos, false);
+        }
+        else if (!sub_session->clean_session && effectiveQos > Qos::AtMostOnce) {
+            services_.outbox.enqueue(sub_session, msg, effectiveQos);
+        }
     }
 }
 

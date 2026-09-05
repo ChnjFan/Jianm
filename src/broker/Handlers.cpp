@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:40:04
+ * Last Modified: 2026-09-05 22:27:17
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -51,6 +51,7 @@
 #include "Router.hpp"
 #include "TopicTree.hpp"
 #include "RetainStore.hpp"
+#include "Outbox.hpp"
 
 using namespace jianm::broker;
 
@@ -159,6 +160,20 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
     out_cp.session_present = existed;
     out_cp.return_code = ConnackReturnCode::accepted;
     channel->asyncSend(out);
+
+    // Immediately drain messages cached during offline periods after reconnection
+    // persistent session + old session exists
+    if (existed && !cp.clean_session) {
+        Router router(service);
+        auto session = client->session.lock();
+        const size_t drained = service.outbox.drain(session,
+            [&](const Message& msg, Qos qos, bool retained){
+                router.deliver(client, msg, qos, retained);
+            });
+        if (drained > 0) {
+            JM_LOG_INFO("drained {} queued message(s) for {}", drained, cid);
+        }
+    }
 
     service.hooks.onClientConnected(cid, cp.username);
     JM_LOG_INFO("client connected: {} from {} {}", cid, channel->getPeer(),

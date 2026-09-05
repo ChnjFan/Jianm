@@ -1,10 +1,10 @@
 /*
- * File: /Services.hpp
+ * File: /Outbox.cpp
  * Project: broker
- * Created Date: 2026-08-23 15:58:59
+ * Created Date: 2026-09-05 21:45:39
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 21:53:13
+ * Last Modified: 2026-09-05 22:00:20
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -33,42 +33,40 @@
  * HISTORY:
  */
 
-#pragma once
+#include "Outbox.hpp"
 
-#include <atomic>
-#include <cstdint>
-#include <functional>
-#include <string>
+using namespace jianm::broker;
 
-namespace jianm {
-namespace plugin { class HookRegistry; }
-namespace broker {
-
-class SessionManager;
-class TopicTree;
-class RetainStore;
-class Outbox;
-
-/**
- * @brief Service Aggregation
- *
- * Package all core dependencies and pass them to the Handler (dependency injection for convenient mock testing)
- */
-struct BrokerServices
+void Outbox::enqueue(const SessionPtr &session, const Message &msg, Qos granted_qos, bool retained)
 {
-    TopicTree& topics;
-    SessionManager& sessions;
-    RetainStore& retains;
-    Outbox& outbox;
-    plugin::HookRegistry& hooks;
-
-    std::atomic<uint64_t> received{0};
-    std::atomic<uint64_t> delivered{0};
-
-    BrokerServices(TopicTree& t, SessionManager& s, RetainStore& r, Outbox& o, plugin::HookRegistry& h)
-        : topics(t), sessions(s), retains(r), outbox(o), hooks(h) {}
-};
-
+    // QoS 0 discards messages for offline clients
+    if (granted_qos == Qos::AtMostOnce)
+        return;
     
-} // namespace broker
-} // namespace jianm
+    auto& q = queues_[session.get()];
+    // Discard the oldest message when the queue is full
+    // head‑drop new‑message‑preferring policy
+    if (q.size() >= MaxQueueSize)
+        q.pop_front();
+    q.push_back({msg, granted_qos, retained});
+}
+
+void Outbox::clear(const SessionPtr &session)
+{
+    queues_.erase(session.get());
+}
+
+size_t Outbox::size(const SessionPtr &session) const
+{
+    const auto it = queues_.find(session.get());
+    return it == queues_.end() ? 0 : it->second.size();
+}
+
+size_t Outbox::totalSize() const
+{
+    size_t total = 0;
+    for (const auto& [_, q] : queues_)
+        total += q.size();
+    return total;
+}
+
