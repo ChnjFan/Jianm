@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-04 23:05:46
+ * Last Modified: 2026-09-05 10:02:26
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -72,11 +72,13 @@ void Channel::start()
 
 void Channel::close()
 {
+    closing_ = true;
     transport_->close();
 }
 
 void Channel::requestClose(const std::string &reason)
 {
+    if (closing_) return;
     auto self = shared_from_this();
 
     if (on_close) {
@@ -116,6 +118,7 @@ void Channel::setKeepalive(uint16_t seconds)
 
 void Channel::asyncReadHead()
 {
+    if (closing_) return;
     auto self = shared_from_this();
     // Read the fixed header byte and first remaining length byte (offset 0..2)
     transport_->asyncReadSome(buffer_, 0, 2,

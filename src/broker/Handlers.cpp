@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-04 23:15:44
+ * Last Modified: 2026-09-05 10:34:38
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -279,9 +279,9 @@ void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientCon
 void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> &client,
      const std::shared_ptr<Packet> &pkt)
 {
-    const auto& unSub = std::get<UnsubscribePacket>(pkt->body);
-    for (const auto& filter : unSub.topics) {
-        auto session = client->session.lock();
+    const auto&[packet_id, topics] = std::get<UnsubscribePacket>(pkt->body);
+    for (const auto& filter : topics) {
+        const auto session = client->session.lock();
         if (!session) {
             throw std::runtime_error("session not found in UNSUBSCRIBE");
         }
@@ -295,12 +295,11 @@ void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientC
     // Specification requirement [MQTT-3.10.1-2]:
     // If the Server receives an UNSUBSCRIBE Packet containing a Topic Filter that does not match any
     // existing subscription, the Server MUST process the UNSUBSCRIBE Packet as normal.
-    auto out = std::make_shared<Packet>();
+    const auto out = std::make_shared<Packet>();
     out->type = PacketType::Unsuback;
-    auto& ap = out->body.emplace<AckPacket>();
-    ap.packet_id = unSub.packet_id;
-    auto channel = client->channel.lock();
-    if (channel) {
+    auto&[out_packet_id] = out->body.emplace<AckPacket>();
+    out_packet_id = packet_id;
+    if (const auto channel = client->channel.lock()) {
         channel->asyncSend(out);
     }
 }
@@ -308,27 +307,27 @@ void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientC
 void AckHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
      const std::shared_ptr<Packet> &pkt)
 {
-    const auto& ack = std::get<AckPacket>(pkt->body);
+    const auto&[packet_id] = std::get<AckPacket>(pkt->body);
     switch (pkt->type) {
         case PacketType::Puback:    // QoS 1 acknowledge
-            client->awaiting_puback.erase(ack.packet_id);
-            client->out_inflight.erase(ack.packet_id);
+            client->awaiting_puback.erase(packet_id);
+            client->out_inflight.erase(packet_id);
             break;
         case PacketType::Pubrec:    // QoS 2 receive
         {
-            auto it = client->out_inflight.find(ack.packet_id);
+            const auto it = client->out_inflight.find(packet_id);
             if (it != client->out_inflight.end() && it->second.qos == Qos::ExactlyOnce) {
                 it->second.pubrel_sent = true;
-                connAck(client, PacketType::Pubrel, ack.packet_id);
+                connAck(client, PacketType::Pubrel, packet_id);
             }
         }
             break;
         case PacketType::Pubrel:    // QoS 2 release
-            client->awaiting_pubrel.erase(ack.packet_id);
-            connAck(client, PacketType::Pubcomp, ack.packet_id);
+            client->awaiting_pubrel.erase(packet_id);
+            connAck(client, PacketType::Pubcomp, packet_id);
             break;
         case PacketType::Pubcomp:   // QoS 2 complete
-            client->out_inflight.erase(ack.packet_id);
+            client->out_inflight.erase(packet_id);
             break;
         default:
             JM_LOG_WARN("unexpected ACK packet type: {}", static_cast<int>(pkt->type));
@@ -339,11 +338,10 @@ void AckHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr
 void PingreqHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
      [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
 {
-    auto out = std::make_shared<Packet>();
+    const auto out = std::make_shared<Packet>();
     out->type = PacketType::Pingresp;
     out->body.emplace<EmptyPacket>();
-    auto channel = client->channel.lock();
-    if (channel) {
+    if (const auto channel = client->channel.lock()) {
         channel->asyncSend(out);
     }
 }
@@ -351,9 +349,15 @@ void PingreqHandler::handle([[maybe_unused]]BrokerServices &service, std::shared
 void DisconnectHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
      [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
 {
+    // Specification requirement [MQTT-3.14.1-1]:
+    // When a Client sends a DISCONNECT Packet to the Server, it is indicating that it
+    // is disconnecting cleanly. The Client is not required to wait for any kind of acknowledgment
+    // from the Server. The Client can close the Network Connection immediately after sending
+    // the DISCONNECT Packet. The Server MUST process the DISCONNECT Packet as a signal that
+    // the Client is disconnecting cleanly. The Server MUST NOT send any more PUBLISH Packets to
+    // the Client after it has sent the DISCONNECT Packet.
+    // The Server MUST NOT send a DISCONNECT Packet to the Client 
+    // after it has received a DISCONNECT Packet from the Client.
     client->clean_disconnect = true;
-    auto channel = client->channel.lock();
-    if (channel) {
-        channel->requestClose("DISCONNECT received");
-    }
+    client->connected = false;
 }

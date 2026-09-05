@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 18:05:00
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-28 11:17:26
+ * Last Modified: 2026-09-05 10:03:37
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -49,6 +49,7 @@ TcpTransport::TcpTransport(asio::io_context &ctx)
 void TcpTransport::asyncReadSome(std::vector<uint8_t> &buffer, const size_t readSize, const size_t totalSize,
         const ReadFinishedCallback &callback)
 {
+    if (closing_) return;
     auto self = shared_from_this();
 
     // Ensure the vector's logical size covers the region we want to read into.
@@ -70,6 +71,7 @@ void TcpTransport::asyncReadSome(std::vector<uint8_t> &buffer, const size_t read
 
 void TcpTransport::asyncSend(std::vector<uint8_t> &&buffer)
 {
+    if (closing_) return;
     std::lock_guard<std::mutex> lock(mtx_);
     const size_t sendSize = send_lists_.size();
     if (sendSize > MAX_SEND_QUEUE) {   // suppression
@@ -95,6 +97,7 @@ void TcpTransport::close()
 
 void TcpTransport::asyncSend()
 {
+    if (closing_) return;
     const auto& buffer = send_lists_.front();
     auto self = shared_from_this();
     asio::async_write(socket_, asio::buffer(buffer),
