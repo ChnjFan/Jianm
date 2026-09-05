@@ -235,7 +235,7 @@ allow_anonymous = true
 | 订阅 | UNSUBSCRIBE/UNSUBACK | ✅ | 取消订阅 |
 | 订阅 | Topic 通配符匹配 | ✅ | `+` 单层、`#` 多层通配符（TopicTree 实现） |
 | 会话 | 会话状态持久化 | ❌ | CleanSession=0 时保存订阅和 pending 消息 |
-| 会话 | 离线消息队列 | ❌ | CleanSession=0 时缓存离线 QoS 1/2 消息 |
+| 会话 | 离线消息队列 | ✅ | Outbox 缓存离线 QoS 1/2 消息，重连时投递（[MQTT-3.1.2-5]） |
 | 心跳 | PINGREQ/PINGRESP | ✅ | 客户端心跳请求与服务端响应 |
 | 断开 | DISCONNECT 处理 | ✅ | 客户端优雅断开连接 |
 | 遗嘱 | Will Message 发布 | ✅ | 异常断开时向订阅者发布遗嘱消息 |

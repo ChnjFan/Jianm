@@ -237,7 +237,7 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Subscribe | UNSUBSCRIBE/UNSUBACK | ✅ | Unsubscribe |
 | Subscribe | Topic wildcard matching | ✅ | `+` single-level, `#` multi-level wildcards (TopicTree implementation) |
 | Session | Session state persistence | ❌ | Save subscriptions and pending messages when CleanSession=0 |
-| Session | Offline message queue | ❌ | Cache offline QoS 1/2 messages when CleanSession=0 |
+| Session | Offline message queue | ✅ | Outbox caches offline QoS 1/2 messages, delivered on reconnection ([MQTT-3.1.2-5]) |
 | Heartbeat | PINGREQ/PINGRESP | ✅ | Client heartbeat request and server response |
 | Disconnect | DISCONNECT handling | ✅ | Graceful client disconnection |
 | Will | Will Message publishing | ✅ | Publish will message to subscribers on abnormal disconnect |
