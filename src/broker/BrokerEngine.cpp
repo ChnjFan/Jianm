@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-04 23:16:40
+ * Last Modified: 2026-09-05 11:05:22
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -54,6 +54,7 @@
 #include "Handlers.hpp"
 #include "Services.hpp"
 #include "TopicTree.hpp"
+#include "Router.hpp"
 
 
 using namespace jianm::broker;
@@ -251,7 +252,8 @@ void BrokerEngine::Impl::onClose(const jianm::net::ChannelPtr &channel, const st
     // Abnormal disconnection with will requires publishing the will
     // no publishing for take‑over or normal disconnection
     if (ctx->connected && !ctx->clean_disconnect && !ctx->taken_over && ctx->will.valid) {
-        // TODO: send will message
+        Router router(services_);
+        router.route({ctx->will.topic, ctx->will.payload, ctx->will.qos, ctx->will.retain, cid});
         JM_LOG_INFO("will published for {}", cid);
     }
 
