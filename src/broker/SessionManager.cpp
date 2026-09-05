@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 12:34:48
+ * Last Modified: 2026-09-05 13:45:11
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -40,6 +40,7 @@
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 #include "ClientContext.hpp"
+#include "Router.hpp"
 
 using namespace jianm::broker;
 
@@ -148,6 +149,33 @@ std::shared_ptr<jianm::Session> SessionManager::getSession(const std::string &cl
     session->clean_session = false;
     sessions_.emplace(client_id, session);
     return session;
+}
+
+void SessionManager::checkKeepalive(const time_point& now, const std::vector<jianm::net::ChannelPtr>& snapshot)
+{
+    for (auto c : snapshot) {
+        c->tick(now);
+    }
+}
+
+void SessionManager::checkRetransmission(const time_point& now, Router& router)
+{
+    for (const auto& [_, ctx] : by_channel_) {
+        const auto& channel = ctx->channel.lock();
+        if (!channel || channel->isClosing()) continue;
+        for (auto& [pid, out] : ctx->out_inflight) {
+            if (out.retry_count >= ctx->max_retries) {
+                JM_LOG_WARN("client {} message {} to topic {} retry limit reached, drop it",
+                     ctx->client_id, pid, out.topic);
+                continue;
+            }
+            if (now - out.sent_time >= ctx->retry_interval) {
+                JM_LOG_INFO("client {} message {} to topic {} retrying, count {}",
+                     ctx->client_id, pid, out.topic, out.retry_count + 1);
+                router.resend(ctx, pid);
+            }
+        }
+    }
 }
 
 void SessionManager::dropSession(const std::shared_ptr<jianm::Session> &session)

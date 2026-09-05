@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:29:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 10:02:26
+ * Last Modified: 2026-09-05 13:26:16
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -110,6 +110,16 @@ bool Channel::asyncSend(const PacketPtr &packet)
     return true;
 }
 
+void Channel::tick(const time_point &now)
+{
+    if (closing_ || keepalive_ == 0) return;
+    size_t keepalive_millis = keepalive_ * 1000;
+    if (now - last_read_ > std::chrono::milliseconds(keepalive_millis * 3 / 2)) {
+        JM_LOG_WARN("Channel {} keepalive timeout, closing", peer_);
+        requestClose("keepalive timeout");
+    }
+}
+
 void Channel::setKeepalive(uint16_t seconds)
 {
     keepalive_ = seconds;
@@ -185,6 +195,7 @@ void Channel::asyncReadPayload(size_t offset, size_t size)
         try {
             const jianm::protocol::PacketPtr pack = jianm::protocol::Codec::decode(buffer_);
             if (pack && on_packet) {
+                last_read_ = clock::now();
                 on_packet(self, pack);
             }
             buffer_.clear();

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 11:05:22
+ * Last Modified: 2026-09-05 13:30:07
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -55,6 +55,7 @@
 #include "Services.hpp"
 #include "TopicTree.hpp"
 #include "Router.hpp"
+#include "TickServiice.hpp"
 
 
 using namespace jianm::broker;
@@ -86,6 +87,8 @@ private:
     void handlePacket();
     void handleRequest();
 
+    void registerTickTasks();
+
     Options opts_;
     asio::io_context& io_context_;
     tcp::acceptor acceptor_;
@@ -96,6 +99,7 @@ private:
     jianm::plugin::HookRegistry hooks_;
 
     BrokerServices services_;
+    TickService tick_service_;
     PacketDispatcher dispachter_;
     std::shared_ptr<jianm::management::AdminServer> admin_;
 
@@ -118,6 +122,7 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , topics_()
     , sessions_()
     , services_(topics_, sessions_, hooks_)
+    , tick_service_(io_context_, opts_.tick_interval, services_)
     , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
     std::string logLevel = jianm::common::ConfigMgr::getInstance()["log_level"];
@@ -129,6 +134,7 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     jianm::common::logger_init(logLevel, logOutput);
 
     registerHandlers();
+    registerTickTasks();
 }
 
 BrokerEngine::Impl::~Impl()
@@ -140,6 +146,7 @@ bool BrokerEngine::Impl::start()
 {
     if (started_) return true;
 
+    tick_service_.start();
     admin_->start();
     listen();
 
@@ -301,6 +308,25 @@ void BrokerEngine::Impl::handleRequest()
         auto channel = ctx->channel.lock();
         if (channel) channel->requestClose(e.what());
     }
+}
+
+void BrokerEngine::Impl::registerTickTasks()
+{
+    tick_service_.registerTask([this](BrokerServices& svc, const time_point& now) {
+        std::vector<jianm::net::ChannelPtr> snapshot;
+        {
+            std::lock_guard<std::mutex> lock(channel_mtx_);
+            for (const auto& [_, channel] : channels_) {
+                snapshot.push_back(channel);
+            }
+        }
+        svc.sessions.checkKeepalive(now, snapshot);
+    });
+
+    tick_service_.registerTask([this](BrokerServices& svc, const time_point& now) {
+        Router router(services_);
+        svc.sessions.checkRetransmission(now, router);
+    });
 }
 
 BrokerEngine::BrokerEngine(Options opts, asio::io_context& ctx)

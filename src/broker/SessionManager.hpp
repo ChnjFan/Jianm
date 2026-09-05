@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 12:34:22
+ * Last Modified: 2026-09-05 13:45:16
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -37,6 +37,7 @@
 
 #include <atomic>
 #include <thread>
+#include <chrono>
 #include <unordered_map>
 
 #include "jianm/model/Session.hpp"
@@ -45,9 +46,13 @@
 #include "net/Channel.hpp"
 
 #include "ClientContext.hpp"
+#include "Router.hpp"
 
 namespace jianm {
 namespace broker {
+
+using clock = std::chrono::steady_clock;
+using time_point = std::chrono::time_point<clock>;
 
 class SessionManager
 {
@@ -68,6 +73,9 @@ public:
 
     bool sessionExists(const std::string& client_id) const;
     std::shared_ptr<jianm::Session> getSession(const std::string& client_id, bool clean);
+
+    void checkKeepalive(const time_point& now, const std::vector<jianm::net::ChannelPtr>& snapshot);
+    void checkRetransmission(const time_point& now, Router& router);
 
     /// Number of active channel connections (by_channel_ size)
     size_t connectionCount() const;

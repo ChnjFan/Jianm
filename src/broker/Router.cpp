@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 22:10:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-25 10:05:29
+ * Last Modified: 2026-09-05 13:57:17
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -37,6 +37,7 @@
 
 #include "jianm/model/Packet.hpp"
 
+#include "common/Logger.hpp"
 #include "TopicTree.hpp"
 #include "SessionManager.hpp"
 
@@ -77,7 +78,7 @@ void Router::deliver(std::shared_ptr<ClientContext> subscriber, const Message &m
 
     if (pub.qos != Qos::AtMostOnce) {
         pub.packet_id = subscriber->nextPacketId();
-        subscriber->out_inflight[pub.packet_id] = {pub.qos, false};
+        subscriber->out_inflight[pub.packet_id] = {pub.qos, false, msg.topic, msg.payload, msg.source_client};
     }
 
     if (sub_channel->asyncSend(pkt)) {
@@ -85,5 +86,49 @@ void Router::deliver(std::shared_ptr<ClientContext> subscriber, const Message &m
     }
     else {
         subscriber->out_inflight.erase(pub.packet_id);
+    }
+}
+
+void Router::resend(std::shared_ptr<ClientContext> subscriber, uint16_t packet_id)
+{
+    auto it = subscriber->out_inflight.find(packet_id);
+    if (it == subscriber->out_inflight.end()) {
+        JM_LOG_WARN("resend: packet {} not found in out_inflight for client {}", packet_id, subscriber->client_id);
+        return;
+    }
+    auto channel = subscriber->channel.lock();
+    if (!subscriber->connected || !channel || channel->isClosing()) {
+        JM_LOG_WARN("resend: client {} not connected or channel closing", subscriber->client_id);
+        return;
+    }
+
+    auto& item = it->second;
+    auto pkt = std::make_shared<Packet>();
+    if (item.qos == Qos::ExactlyOnce && item.pubrel_sent) {
+        // Already sent PUBREL, waiting for PUBCOMP
+        pkt->type = PacketType::Pubrel;
+        auto& pubrel = pkt->body.emplace<AckPacket>();
+        pubrel.packet_id = packet_id;
+        channel->asyncSend(pkt);
+    }
+    else {
+        // Specification requirement [MQTT‑3.3.1]:
+        // Qos1 and Qos2 resend PUBLISH, DUP=1, retain=0
+        pkt->type = PacketType::Publish;
+        auto& pub = pkt->body.emplace<PublishPacket>();
+        pub.topic = item.topic;
+        pub.payload = item.payload;
+        pub.qos = item.qos;
+        pub.retain = false;
+        pub.dup = true;
+        pub.packet_id = packet_id;
+        pub.source_client = item.source_client;
+        if (!channel->asyncSend(pkt)) {
+            JM_LOG_WARN("resend: failed to send packet {} to client {}", packet_id, subscriber->client_id);
+        }
+        else {
+            item.sent_time = clock::now();
+            item.retry_count++;
+        }
     }
 }

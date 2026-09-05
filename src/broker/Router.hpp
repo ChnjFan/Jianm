@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 22:03:23
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 22:10:29
+ * Last Modified: 2026-09-05 13:52:49
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -50,6 +50,8 @@ public:
 
     void route(const Message& msg);
     void deliver(std::shared_ptr<ClientContext> subscriber, const Message& msg, Qos granted_qos, bool as_retained);
+
+    void resend(std::shared_ptr<ClientContext> subscriber, uint16_t packet_id);
 private:
     BrokerServices& services_;
 };

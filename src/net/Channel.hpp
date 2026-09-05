@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 17:08:11
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 23:20:12
+ * Last Modified: 2026-09-05 12:05:45
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -74,6 +74,8 @@ public:
     tcp::socket& getSocket() { return transport_->getSocket(); }
 
     bool asyncSend(const PacketPtr& packet);
+
+    void tick(const time_point& now);
 
     void setKeepalive(uint16_t seconds);
     std::string getPeer() const { return peer_; }

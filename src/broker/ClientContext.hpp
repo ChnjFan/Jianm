@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:03:05
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-31 12:09:10
+ * Last Modified: 2026-09-05 13:41:07
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -38,6 +38,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <chrono>
 #include <unordered_map>
 
 #include "jianm/model/Qos.hpp"
@@ -49,6 +50,9 @@ namespace jianm {
 namespace net { class Channel; }
 
 namespace broker {
+
+using clock = std::chrono::steady_clock;
+using time_point = std::chrono::time_point<clock>;
 
 /**
  * @brief Will message
@@ -86,9 +90,17 @@ struct ClientContext {
     struct OutItem {
         Qos qos{Qos::AtMostOnce};
         bool pubrel_sent{false};
+        // The message content is stored here to support retransmission in case of network issues
+        std::string topic;
+        std::string payload;
+        std::string source_client;
+        time_point sent_time = clock::now();
+        uint8_t retry_count = 0;
     };
     std::unordered_map<uint16_t, OutItem> out_inflight; // key is Packet ID
     uint16_t next_out_pid = 1;
+    uint8_t max_retries = 10;
+    std::chrono::milliseconds retry_interval{5000};
 
     uint16_t nextPacketId() { return next_out_pid++; }
 };
