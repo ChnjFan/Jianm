@@ -210,7 +210,8 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | ---------------- | :----: | ----------- |
 | Clean Session    |   ✅   | Clean session flag, controls session state clearing and restoration |
 | Session Present  |   ✅   | Correctly calculated based on CleanSession and existing session state |
-| Will Flag        |   ⚠️   | CONNECT packet parsing and validation supported; will message publishing not implemented |
+| Will Flag        |   ✅   | CONNECT packet parsing and validation supported; will message publishing implemented |
+| Will Retain      |   ✅   | Retained will message stored in RetainStore |
 | Username/Password | ⚠️  | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; auth logic is a stub (always returns true) |
 | Keep Alive       |   ✅   | 1.5× KeepAlive timeout auto-disconnect mechanism |
 | ClientID Validation | ✅ | Length ≤ 23 chars, UTF-8 encoding validation |
@@ -228,9 +229,10 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Module | Feature | Status | Description |
 | ------ | ------- | :----: | ----------- |
 | Publish | PUBLISH packet parsing & routing | ✅ | TopicTree wildcard matching + Router delivery |
-| Publish | Retained message storage | ⚠️ | Retained storage logic is TODO; parsing and clearing framework ready |
+| Publish | Retained message storage | ✅ | RetainStore for store/clear/list; empty payload clears retained message |
 | Publish | QoS 1 message flow | ✅ | AT_LEAST_ONCE delivery + PUBACK + DUP retransmission dedup |
 | Publish | QoS 2 message flow | ✅ | EXACTLY_ONCE four-step handshake (PUBREC → PUBREL → PUBCOMP) |
+| Publish | Message retransmission | ✅ | QoS 1/2 unacknowledged message retry (DUP=1), disconnect on retry limit |
 | Subscribe | SUBSCRIBE/SUBACK | ✅ | Topic subscription + granted QoS response (with topic filter validation) |
 | Subscribe | UNSUBSCRIBE/UNSUBACK | ✅ | Unsubscribe |
 | Subscribe | Topic wildcard matching | ✅ | `+` single-level, `#` multi-level wildcards (TopicTree implementation) |
@@ -238,7 +240,7 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Session | Offline message queue | ❌ | Cache offline QoS 1/2 messages when CleanSession=0 |
 | Heartbeat | PINGREQ/PINGRESP | ✅ | Client heartbeat request and server response |
 | Disconnect | DISCONNECT handling | ✅ | Graceful client disconnection |
-| Will | Will Message publishing | ❌ | Publish will message to subscribers on abnormal disconnect |
+| Will | Will Message publishing | ✅ | Publish will message to subscribers on abnormal disconnect |
 | Auth | Real authentication logic | ❌ | Currently a stub (always returns true) |
 
 > ✅ Implemented　⚠️ Partially implemented　❌ Not implemented

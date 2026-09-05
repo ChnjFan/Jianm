@@ -208,7 +208,8 @@ allow_anonymous = true
 | ---------------- | :--: | ---- |
 | Clean Session    | ✅ | 清理会话标志位，控制会话状态清除与恢复 |
 | Session Present  | ✅ | 根据 CleanSession 和已有会话状态正确计算 |
-| Will Flag        | ⚠️ | CONNECT 报文解析和校验支持，遗嘱消息发布未实现 |
+| Will Flag        | ✅ | CONNECT 报文解析、校验支持，遗嘱消息发布已实现 |
+| Will Retain      | ✅ | 保留标志的遗嘱消息存入 RetainStore |
 | Username/Password | ⚠️ | CONNECT 报文解析、UTF-8 校验、allow_anonymous 配置支持，认证逻辑为桩函数（始终返回 true） |
 | Keep Alive       | ✅ | 1.5× KeepAlive 超时自动断开机制 |
 | ClientID 校验    | ✅ | 长度 ≤ 23 字符、UTF-8 编码校验 |
@@ -226,9 +227,10 @@ allow_anonymous = true
 | 模块 | 功能 | 状态 | 说明 |
 | ---- | ---- | :--: | ---- |
 | 发布 | PUBLISH 报文解析与路由 | ✅ | TopicTree 通配符匹配 + Router 投递 |
-| 发布 | Retained 消息存储 | ⚠️ | 保留消息存储逻辑为 TODO，解析与清除框架已就绪 |
+| 发布 | Retained 消息存储 | ✅ | RetainStore 存储/清除/列表，空 payload 清除保留消息 |
 | 发布 | QoS 1 消息流 | ✅ | AT_LEAST_ONCE 投递 + PUBACK + DUP 重传去重 |
 | 发布 | QoS 2 消息流 | ✅ | EXACTLY_ONCE 四步握手（PUBREC → PUBREL → PUBCOMP） |
+| 发布 | 消息重传 | ✅ | QoS 1/2 未确认消息定时重传（DUP=1），超次断开 |
 | 订阅 | SUBSCRIBE/SUBACK | ✅ | 订阅主题 + granted QoS 返回（含 topic filter 校验） |
 | 订阅 | UNSUBSCRIBE/UNSUBACK | ✅ | 取消订阅 |
 | 订阅 | Topic 通配符匹配 | ✅ | `+` 单层、`#` 多层通配符（TopicTree 实现） |
@@ -236,7 +238,7 @@ allow_anonymous = true
 | 会话 | 离线消息队列 | ❌ | CleanSession=0 时缓存离线 QoS 1/2 消息 |
 | 心跳 | PINGREQ/PINGRESP | ✅ | 客户端心跳请求与服务端响应 |
 | 断开 | DISCONNECT 处理 | ✅ | 客户端优雅断开连接 |
-| 遗嘱 | Will Message 发布 | ❌ | 异常断开时向订阅者发布遗嘱消息 |
+| 遗嘱 | Will Message 发布 | ✅ | 异常断开时向订阅者发布遗嘱消息 |
 | 认证 | 真实认证逻辑 | ❌ | 当前为桩函数（始终返回 true） |
 
 > ✅ 已实现　⚠️ 部分实现　❌ 未实现
