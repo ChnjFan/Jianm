@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:19:07
+ * Last Modified: 2026-09-05 19:20:16
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -243,6 +243,12 @@ void BrokerEngine::Impl::onPacket(std::shared_ptr<ClientContext> ctx, const jian
     }
     std::lock_guard<std::mutex> lock(mtx_);
     requests_.push({ctx, packet});
+    if (packet->type == PacketType::Disconnect) {
+        // Process messages asynchronously. The client will disconnect immediately after sending DISCONNECT
+        // It may happen that the worker thread fails to read the socket before processing DISCONNECT,
+        // resulting in the will message being sent
+        ctx->clean_disconnect = true;
+    }
     cond_.notify_one();
 }
 
