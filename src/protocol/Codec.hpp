@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:46:12
+ * Last Modified: 2026-09-06 11:53:12
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -55,7 +55,7 @@ class Codec {
 public:
     // Maximum bytes per single message (default 16 MB, for DoS prevention).
     // The specification defaults to 256 MB; a conservative value is adopted here.
-    static constexpr uint32_t MaxPacketSize = 16 * 1024 * 1024;
+    static uint32_t MaxPacketSize;
 
     static size_t encodeRemainingLength(std::vector<uint8_t> &buffer, size_t length);
     // Returns the decoded remaining length value and advances index past the
@@ -149,6 +149,7 @@ private:
         serializeDisconnect,
     };
 };
+
 
 } // namespace protocol
 } // namespace jianm

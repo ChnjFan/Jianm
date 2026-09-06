@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:47:32
+ * Last Modified: 2026-09-06 11:27:08
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -44,6 +44,10 @@ using namespace jianm::protocol;
 
 // remaining length can be encoded in at most 4 bytes
 static constexpr size_t MAX_REMAINING_SIZE = 4;
+
+// Maximum bytes per single message (default 16 MB, for DoS prevention).
+// Overwritten at startup from the max_packet_size config (in MB).
+uint32_t Codec::MaxPacketSize = 16 * 1024 * 1024;
 
 size_t Codec::encodeRemainingLength(std::vector<uint8_t> &buffer, size_t length)
 {
@@ -346,6 +350,10 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
     if (cp.has_will) {
         readString16(buffer, index, cp.will_topic);
         readString16(buffer, index, cp.will_payload);
+    }
+
+    if (!cp.bits.username && cp.bits.password) {
+        throw std::runtime_error("password flag without username flag");
     }
     
     if (cp.bits.username) {

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:26
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:02:57
+ * Last Modified: 2026-09-06 11:55:15
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -85,6 +85,7 @@ public:
     size_t sessionCount() const;
 
     std::function<void(const SessionPtr&)> on_session_drop;
+    static uint32_t MaxConnections;
 
 private:
     void dropSession(const SessionPtr& session);

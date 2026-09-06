@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:19:56
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-23 13:31:17
+ * Last Modified: 2026-09-06 11:20:58
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -44,6 +44,8 @@ namespace common {
 
 constexpr unsigned short DEFAULT_SERVER_PORT = 1883;
 constexpr unsigned short DEFAULT_ADMIN_PORT = 10000;
+constexpr unsigned short DEFAULT_MAX_CONNECTIONS = 1024;
+constexpr unsigned short DEFAULT_MAX_PACKET_SIZE = 16;
 
 class ConfigMgr {
 public:

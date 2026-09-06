@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:50
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:13:29
+ * Last Modified: 2026-09-06 11:22:46
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,16 +35,31 @@
 
 
 
-#include <iostream>
-#include <memory>
-
 #include "jianm/api/BrokerEngine.hpp"
 
 #include "common/ConfigMgr.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 
-#include "example/MessagePrinterPlugin.hpp"
+// #include "example/MessagePrinterPlugin.hpp"
+
+jianm::broker::BrokerEngine::Options loadGlobalConfig()
+{
+    jianm::broker::BrokerEngine::Options opts;
+
+    opts.port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
+                                .value_or(jianm::common::DEFAULT_SERVER_PORT);
+    opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
+                                    .value_or(jianm::common::DEFAULT_ADMIN_PORT);
+    opts.allow_anonymous = jianm::common::parse_bool(jianm::common::ConfigMgr::getInstance()["allow_anonymous"])
+                                    .value_or(true);
+    opts.max_connections = jianm::common::parse_uint32(jianm::common::ConfigMgr::getInstance()["max_connections"])
+                                    .value_or(jianm::common::DEFAULT_MAX_CONNECTIONS);
+    opts.max_packet_size = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["max_packet_size"])
+                                    .value_or(jianm::common::DEFAULT_MAX_PACKET_SIZE);
+
+    return opts;
+}
 
 int main(int argc, char* argv[]) {
     (void)argc;
@@ -52,14 +67,7 @@ int main(int argc, char* argv[]) {
 
     try
     {
-        jianm::broker::BrokerEngine::Options opts;
-        opts.port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["port"])
-                                .value_or(jianm::common::DEFAULT_SERVER_PORT);
-        opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
-                                     .value_or(jianm::common::DEFAULT_ADMIN_PORT);
-        opts.allow_anonymous = jianm::common::parse_bool(jianm::common::ConfigMgr::getInstance()["allow_anonymous"])
-                                     .value_or(true);
-
+        jianm::broker::BrokerEngine::Options opts = loadGlobalConfig();
         asio::io_context ctx{1};
         jianm::broker::BrokerEngine broker(opts, ctx);
         // broker.addPlugin(std::make_unique<jianm::example::MessagePrinterPlugin>());

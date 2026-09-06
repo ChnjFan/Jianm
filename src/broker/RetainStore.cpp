@@ -4,7 +4,7 @@
  * Created Date: 2026-09-05 14:10:23
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:13:16
+ * Last Modified: 2026-09-06 11:49:54
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -39,20 +39,30 @@ using namespace jianm::broker;
 
 void RetainStore::store(const std::string &topic, const Message &msg)
 {
-    map_[topic] = msg;
+    auto it = idx_.find(topic);
+    if (it != idx_.end()) {
+        messages_[it->second] = msg;
+    }
+    else {
+        idx_[topic] = messages_.size();
+        messages_.push_back(msg);
+    }
 }
 
 void RetainStore::clear(const std::string &topic)
 {
-    map_.erase(topic);
+    auto it = idx_.find(topic);
+    if (it == idx_.end()) return;
+    const size_t pos = it->second;
+    messages_.erase(messages_.begin() + pos);
+    idx_.erase(it);
+    // Rebuild the index after deleting messages
+    for (size_t i = pos; i < messages_.size(); ++i) {
+        idx_[messages_[i].topic] = i;
+    }
 }
 
 std::vector<jianm::Message> RetainStore::all() const
 {
-    std::vector<Message> out;
-    out.reserve(map_.size());
-    for (const auto& [topic, msg] : map_) {
-        out.push_back(msg);
-    }
-    return out;
+    return messages_;
 }

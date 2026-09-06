@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:26:13
+ * Last Modified: 2026-09-06 11:30:24
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -46,7 +46,6 @@
 #include "security/SecurityChain.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
-#include "net/Channel.hpp"
 #include "Services.hpp"
 #include "SessionManager.hpp"
 #include "Router.hpp"
@@ -68,6 +67,11 @@ static void connAck(std::shared_ptr<ClientContext> &client, PacketType type, uin
     if (channel) {
         channel->asyncSend(pkt);
     }
+}
+
+static uint64_t nextAutoSeq() {
+    static std::atomic<uint64_t> counter{0};
+    return ++counter;
 }
 
 }
@@ -106,6 +110,11 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         }
     });
 
+    if (service.sessions.connectionCount() >= SessionManager::MaxConnections) {
+        rc = ConnackReturnCode::server_unavailable;
+        return;
+    }
+
     // Specification requirement [MQTT-3.1.2-2]:
     // If the Protocol Level is not supported, respond with CONNACK return code 0x01.
     if (cp.level != JM_MQTT_3_1_1_VERSION_LEVEL) {
@@ -123,6 +132,11 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
             rc = ConnackReturnCode::id_rejected;
             return;
         }
+        cid = "auto-" + std::to_string(nextAutoSeq());
+    }
+    else if (cid.size() > 23) {
+        rc = ConnackReturnCode::id_rejected;
+        return;
     }
 
     if (!service.security.authenticate(cid, cp.username, cp.password)) {

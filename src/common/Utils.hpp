@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 21:11:04
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:13:20
+ * Last Modified: 2026-09-06 11:00:46
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -100,6 +100,23 @@ inline std::optional<int> parse_int(const std::string& s) {
         return std::nullopt;
     }
 }
+
+inline std::optional<uint32_t> parse_uint32(const std::string& s) {
+    try {
+        size_t pos = 0;
+        uint32_t value = std::stoi(s, &pos);
+        // Reject trailing garbage like "123abc"
+        if (pos != s.size()) {
+            return std::nullopt;
+        }
+        return value;
+    } catch (const std::invalid_argument&) {
+        return std::nullopt;
+    } catch (const std::out_of_range&) {
+        return std::nullopt;
+    }
+}
+
 
 inline std::optional<bool> parse_bool(const std::string& s) {
     if (s == "true") return true;

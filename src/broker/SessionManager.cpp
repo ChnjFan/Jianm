@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:05:24
+ * Last Modified: 2026-09-06 11:55:30
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -34,16 +34,16 @@
  */
 
 
-#include <iostream>
 
 #include "SessionManager.hpp"
-#include "common/Utils.hpp"
 #include "common/Logger.hpp"
 #include "ClientContext.hpp"
 #include "Router.hpp"
 #include "TopicTree.hpp"
 
 using namespace jianm::broker;
+
+uint32_t SessionManager::MaxConnections = 1024;
 
 SessionManager::~SessionManager()
 {

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 11:52:29
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:10:12
+ * Last Modified: 2026-09-06 11:20:14
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -64,7 +64,9 @@ public:
         uint32_t tick_interval = 1000; // in milliseconds
 
         bool allow_anonymous = true;
-        
+        uint32_t max_connections = 1024;
+        uint8_t max_packet_size = 16;
+
         // Transport protocol
         TransportType transport_type = TransportType::tcp;
 

@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:16:29
+ * Last Modified: 2026-09-06 11:24:01
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -146,6 +146,9 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     sessions_.on_session_drop = [this](const SessionPtr& session) {
         outbox_.clear(session);
     };
+
+    SessionManager::MaxConnections = opts.max_connections;
+    protocol::Codec::MaxPacketSize = opts.max_packet_size * 1024 * 1024;
 
     registerHandlers();
     registerTickTasks();

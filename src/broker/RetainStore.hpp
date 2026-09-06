@@ -4,7 +4,7 @@
  * Created Date: 2026-09-05 14:07:19
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:10:18
+ * Last Modified: 2026-09-06 11:43:38
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -51,7 +51,8 @@ public:
     std::vector<Message> all() const;
     
 private:
-    std::unordered_map<std::string, Message> map_;
+    std::vector<Message> messages_;
+    std::unordered_map<std::string, size_t> idx_;
 };
     
 } // namespace broker
