@@ -4,7 +4,7 @@
  * Created Date: 2026-09-05 21:21:32
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 16:10:24
+ * Last Modified: 2026-09-06 20:11:28
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -36,6 +36,7 @@
 #pragma once
 
 #include <deque>
+#include <memory>
 #include <unordered_map>
 
 #include "jianm/model/Message.hpp"
