@@ -148,6 +148,12 @@ SessionPtr SessionManager::getSession(const std::string &client_id, bool clean)
     return session;
 }
 
+SessionPtr SessionManager::getSessionByClientId(const std::string &client_id) const
+{
+    auto it = sessions_.find(client_id);
+    return it == sessions_.end() ? nullptr : it->second;
+}
+
 void SessionManager::checkKeepalive(const time_point& now, const std::vector<jianm::net::ChannelPtr>& snapshot)
 {
     for (auto c : snapshot) {

@@ -26,7 +26,9 @@ Jianm/
 │   └── protocol/           # MQTT 协议编解码（Codec）
 ├── plugins/
 │   └── example/            # 示例插件
-├── test/                   # 测试（基于 GoogleTest）
+├── test/                   # 测试
+│   ├── smoke_test.cpp      # C++ GoogleTest 冒烟测试
+│   └── integration/        # Python 集成测试（paho-mqtt + pytest）
 ├── thirdparty/
 │   └── spdlog/             # 日志库（header-only 模式）
 └── build/                  # 构建输出目录
@@ -110,6 +112,8 @@ cmake --build build
 
 ### 运行测试
 
+#### C++ 单元测试（GoogleTest）
+
 ```bash
 cd build
 ctest
@@ -120,6 +124,23 @@ ctest
 ```bash
 ./build/bin/jianm_smoke_test
 ```
+
+#### Python 集成测试（paho-mqtt + pytest）
+
+端到端测试，启动 Broker 并验证 MQTT 协议行为：
+
+```bash
+# 安装依赖
+pip install -r test/integration/requirements.txt
+
+# 运行（自动检测 build/bin/jianm）
+cd test/integration && python -m pytest -v
+
+# 或显式指定 Broker 路径
+JIANM_BIN=/path/to/jianm python -m pytest -v
+```
+
+详见 [test/integration/README.md](../test/integration/README.md)。
 
 ## 使用
 
@@ -170,6 +191,12 @@ admin_port = 10000
 
 # 每个连接接收缓冲区大小（字节，默认 1024）
 max_receive_size = 1024
+
+# 最大并发连接数（默认 1024，0 表示无限制）
+max_connections = 1024
+
+# 单个报文最大大小（MB，默认 16，用于 DoS 防护）
+max_packet_size = 16
 
 # 是否允许匿名连接（true 表示允许）
 allow_anonymous = true
@@ -244,6 +271,15 @@ allow_anonymous = true
 | 认证 | 认证与授权 | ✅ | SecurityChain 认证链 + 发布/订阅 ACL（IAuthenticator/IAuthorizer 策略模式） |
 
 > ✅ 已实现　⚠️ 部分实现　❌ 未实现
+
+## CI / GitHub Actions
+
+冒烟测试在 push 和 PR 时自动运行（`.github/workflows/smoke-test.yml`）：
+
+| 任务 | 说明 |
+|------|------|
+| `broker-unit` | 构建 + C++ 单元测试（`ctest`） |
+| `broker-integration` | 构建 + Python 集成测试（Python 3.9–3.12） |
 
 ## 插件系统
 

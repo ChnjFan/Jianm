@@ -75,6 +75,7 @@ public:
 
     bool sessionExists(const std::string& client_id) const;
     SessionPtr getSession(const std::string& client_id, bool clean);
+    SessionPtr getSessionByClientId(const std::string& client_id) const;
 
     void checkKeepalive(const time_point& now, const std::vector<jianm::net::ChannelPtr>& snapshot);
     void checkRetransmission(const time_point& now, Router& router);

@@ -28,7 +28,9 @@ Jianm/
 │   └── protocol/           # MQTT protocol codec (Codec)
 ├── plugins/
 │   └── example/            # Example plugins
-├── test/                   # Tests (GoogleTest-based)
+├── test/                   # Tests
+│   ├── smoke_test.cpp      # C++ GoogleTest smoke test
+│   └── integration/        # Python integration tests (paho-mqtt + pytest)
 ├── thirdparty/
 │   └── spdlog/             # Logging library (header-only mode)
 └── build/                  # Build output directory
@@ -112,6 +114,8 @@ cmake --build build
 
 ### Run Tests
 
+#### C++ Unit Tests (GoogleTest)
+
 ```bash
 cd build
 ctest
@@ -122,6 +126,23 @@ Or run the test executable directly:
 ```bash
 ./build/bin/jianm_smoke_test
 ```
+
+#### Python Integration Tests (paho-mqtt + pytest)
+
+End-to-end tests that start the broker and verify MQTT protocol behavior:
+
+```bash
+# Install dependencies
+pip install -r test/integration/requirements.txt
+
+# Run (auto-detects build/bin/jianm)
+cd test/integration && python -m pytest -v
+
+# Or specify broker path explicitly
+JIANM_BIN=/path/to/jianm python -m pytest -v
+```
+
+See [test/integration/README.md](./test/integration/README.md) for test details.
 
 ## Usage
 
@@ -172,6 +193,12 @@ admin_port = 10000
 
 # Receive buffer size per connection (bytes, default 1024)
 max_receive_size = 1024
+
+# Maximum concurrent connections (default 1024, 0 = unlimited)
+max_connections = 1024
+
+# Maximum packet size in MB (default 16, for DoS prevention)
+max_packet_size = 16
 
 # Allow anonymous connections (true = allowed)
 allow_anonymous = true
@@ -246,6 +273,15 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Auth | Authentication & Authorization | ✅ | SecurityChain auth chain + publish/subscribe ACL (IAuthenticator/IAuthorizer strategy) |
 
 > ✅ Implemented　⚠️ Partially implemented　❌ Not implemented
+
+## CI / GitHub Actions
+
+Smoke tests run automatically on push and PR via `.github/workflows/smoke-test.yml`:
+
+| Job | What it does |
+|-----|-------------|
+| `broker-unit` | Build + C++ unit tests (`ctest`) |
+| `broker-integration` | Build + Python integration tests (Python 3.9–3.12) |
 
 ## Plugin System
 

@@ -22,7 +22,8 @@
 *.dylib
 *.dll
 *.so.*
-
+.*
+!.github/
 
 # Fortran module files
 *.mod
@@ -68,4 +69,24 @@ vcpkg_installed/
 Testing/
 .cache/
 
-.*
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+wheels/
+*.egg
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
