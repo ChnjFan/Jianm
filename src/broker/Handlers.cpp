@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:27:17
+ * Last Modified: 2026-09-06 10:26:13
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -43,6 +43,7 @@
 #include "jianm/model/Message.hpp"
 
 #include "plugin/HookRegistry.hpp"
+#include "security/SecurityChain.hpp"
 #include "common/Utils.hpp"
 #include "common/Logger.hpp"
 #include "net/Channel.hpp"
@@ -124,7 +125,10 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         }
     }
 
-    // TODO: authen CONNECT
+    if (!service.security.authenticate(cid, cp.username, cp.password)) {
+        rc = ConnackReturnCode::not_authorized;
+        return;
+    }
 
     // Session Takeover: A new connection with the same ClientID kicks out the old connection
     // the old connection will not publish will messages and the session will not be destroyed
@@ -189,6 +193,11 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         throw std::runtime_error("invlaid PUBLISH topic");
     }
 
+    // Silently discard due to no publishing permission
+    if (!service.security.canPublish(client->client_id, pub.topic)) {
+        return;
+    }
+
     // The source client for forwarding messages shall write the client ID 
     // of the client that received the message.
     pub.source_client = client->client_id;
@@ -247,6 +256,7 @@ void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientCon
         throw std::runtime_error("SUBSCRIBE before CONNECT");
     }
 
+
     auto out = std::make_shared<Packet>();
     out->type = PacketType::Suback;
     auto& sa = out->body.emplace<SubackPacket>();
@@ -256,7 +266,8 @@ void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientCon
     Router router(service);
     for (const auto& entry : sub.entries) {
         // Process each subscription entry
-        if (isTopicFilterInvalid(entry.filter)) {
+        if (isTopicFilterInvalid(entry.filter)
+            || !service.security.canSubscribe(client->client_id, entry.filter)) {
             sa.granted.push_back(0x80); // Failure SUBSCRIBE Topic Filter
             continue;
         }

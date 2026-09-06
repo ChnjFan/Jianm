@@ -40,6 +40,9 @@ file(GLOB_RECURSE JIANM_LIB_SOURCES
     plugin/*.cpp
     plugin/*.h
     plugin/*.hpp
+    security/*.cpp
+    security/*.h
+    security/*.hpp
 )
 
 if(JIANM_LIB_SOURCES)

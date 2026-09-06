@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 10:24:50
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-24 19:55:05
+ * Last Modified: 2026-09-06 10:13:29
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -57,6 +57,8 @@ int main(int argc, char* argv[]) {
                                 .value_or(jianm::common::DEFAULT_SERVER_PORT);
         opts.admin_port = jianm::common::parse_int(jianm::common::ConfigMgr::getInstance()["admin_port"])
                                      .value_or(jianm::common::DEFAULT_ADMIN_PORT);
+        opts.allow_anonymous = jianm::common::parse_bool(jianm::common::ConfigMgr::getInstance()["allow_anonymous"])
+                                     .value_or(true);
 
         asio::io_context ctx{1};
         jianm::broker::BrokerEngine broker(opts, ctx);

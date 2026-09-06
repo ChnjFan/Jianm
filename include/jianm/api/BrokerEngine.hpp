@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 11:52:29
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 11:47:56
+ * Last Modified: 2026-09-06 10:10:12
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -62,6 +62,9 @@ public:
         uint16_t admin_port = 10000;
         std::string log_level = "debug";
         uint32_t tick_interval = 1000; // in milliseconds
+
+        bool allow_anonymous = true;
+        
         // Transport protocol
         TransportType transport_type = TransportType::tcp;
 

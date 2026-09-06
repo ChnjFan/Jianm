@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 13:12:48
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:03:08
+ * Last Modified: 2026-09-06 10:16:29
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -46,6 +46,7 @@
 #include "net/ChannelFactory.hpp"
 #include "management/AdminServer.hpp"
 #include "protocol/Codec.hpp"
+#include "security/SecurityChain.hpp"
 #include "plugin/HookRegistry.hpp"
 
 #include "ClientContext.hpp"
@@ -91,6 +92,8 @@ private:
 
     void registerTickTasks();
 
+    void registerSecurity(const BrokerEngine::Options& opts);
+
     Options opts_;
     asio::io_context& io_context_;
     tcp::acceptor acceptor_;
@@ -100,6 +103,7 @@ private:
     SessionManager sessions_;
     RetainStore retians_;
     Outbox outbox_;
+    jianm::security::SecurityChain security_;
     jianm::plugin::HookRegistry hooks_;
 
     BrokerServices services_;
@@ -127,7 +131,7 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
     , sessions_(topics_)
     , retians_()
     , outbox_()
-    , services_(topics_, sessions_, retians_, outbox_, hooks_)
+    , services_(topics_, sessions_, retians_, outbox_, security_, hooks_)
     , tick_service_(io_context_, opts_.tick_interval, services_)
     , admin_(std::make_shared<jianm::management::AdminServer>(opts.admin_port, services_))
 {
@@ -145,6 +149,7 @@ BrokerEngine::Impl::Impl(BrokerEngine::Options opts, asio::io_context& ctx)
 
     registerHandlers();
     registerTickTasks();
+    registerSecurity(opts);
 }
 
 BrokerEngine::Impl::~Impl()
@@ -347,6 +352,18 @@ void BrokerEngine::Impl::registerTickTasks()
         Router router(services_);
         svc.sessions.checkRetransmission(now, router);
     });
+}
+
+void BrokerEngine::Impl::registerSecurity(const BrokerEngine::Options &opts)
+{
+    if (opts.allow_anonymous) {
+        security_.addAuthenticator(std::make_unique<jianm::security::AllowAllAuthenticator>());
+        security_.addAuthorizer(std::make_unique<jianm::security::AllowAllAuthorizer>());
+    }
+    else {
+        security_.addAuthenticator(std::make_unique<jianm::security::PasswordAuthenticator>());
+        security_.addAuthorizer(std::make_unique<jianm::security::AllowAllAuthorizer>());
+    }
 }
 
 BrokerEngine::BrokerEngine(Options opts, asio::io_context& ctx)

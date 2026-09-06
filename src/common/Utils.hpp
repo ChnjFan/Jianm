@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 21:11:04
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-08-27 17:09:41
+ * Last Modified: 2026-09-06 10:13:20
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -100,6 +100,13 @@ inline std::optional<int> parse_int(const std::string& s) {
         return std::nullopt;
     }
 }
+
+inline std::optional<bool> parse_bool(const std::string& s) {
+    if (s == "true") return true;
+    else if (s == "false") return false;
+    else return std::nullopt;
+}
+
 
 /// Validate that a byte sequence is well-formed UTF-8.
 /// Returns true if every code point follows the UTF-8 encoding rules:

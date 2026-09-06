@@ -1,10 +1,10 @@
 /*
- * File: /Services.hpp
- * Project: broker
- * Created Date: 2026-08-23 15:58:59
+ * File: /IAuth.h
+ * Project: contracts
+ * Created Date: 2026-09-05 23:00:33
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:08:15
+ * Last Modified: 2026-09-05 23:04:03
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -35,43 +35,26 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <functional>
 #include <string>
 
 namespace jianm {
-namespace security { class SecurityChain; }
-namespace plugin { class HookRegistry; }
-namespace broker {
 
-class SessionManager;
-class TopicTree;
-class RetainStore;
-class Outbox;
-
-/**
- * @brief Service Aggregation
- *
- * Package all core dependencies and pass them to the Handler (dependency injection for convenient mock testing)
- */
-struct BrokerServices
+/// @brief Authentication Policy (Strategy Pattern)
+class IAuthenticator
 {
-    TopicTree& topics;
-    SessionManager& sessions;
-    RetainStore& retains;
-    Outbox& outbox;
-    security::SecurityChain& security;
-    plugin::HookRegistry& hooks;
-
-    std::atomic<uint64_t> received{0};
-    std::atomic<uint64_t> delivered{0};
-
-    BrokerServices(TopicTree& t, SessionManager& s, RetainStore& r, Outbox& o,
-         security::SecurityChain& sc, plugin::HookRegistry& h)
-        : topics(t), sessions(s), retains(r), outbox(o), security(sc), hooks(h) {}
+public:
+    virtual ~IAuthenticator() = default;
+    virtual bool authenticate(const std::string& client_id, const std::string& username,
+                              const std::string& password) = 0;
 };
 
+/// @brief Authorization Policy (ACL, Policy Mode)
+class IAuthorizer {
+public:
+    virtual ~IAuthorizer() = default;
+    virtual bool canPublish(const std::string& client_id, const std::string& topic) = 0;
+    virtual bool canSubscribe(const std::string& client_id, const std::string& filter) = 0;
+};
     
-} // namespace broker
 } // namespace jianm
+
