@@ -212,7 +212,7 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Session Present  |   ✅   | Correctly calculated based on CleanSession and existing session state |
 | Will Flag        |   ✅   | CONNECT packet parsing and validation supported; will message publishing implemented |
 | Will Retain      |   ✅   | Retained will message stored in RetainStore |
-| Username/Password | ⚠️  | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; auth logic is a stub (always returns true) |
+| Username/Password |   ✅   | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; PasswordAuthenticator |
 | Keep Alive       |   ✅   | 1.5× KeepAlive timeout auto-disconnect mechanism |
 | ClientID Validation | ✅ | Length ≤ 23 chars, UTF-8 encoding validation |
 | UTF-8 Validation |   ✅   | UTF-8 validation for ClientID, Username, Will Topic |
@@ -241,7 +241,7 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Heartbeat | PINGREQ/PINGRESP | ✅ | Client heartbeat request and server response |
 | Disconnect | DISCONNECT handling | ✅ | Graceful client disconnection |
 | Will | Will Message publishing | ✅ | Publish will message to subscribers on abnormal disconnect |
-| Auth | Real authentication logic | ❌ | Currently a stub (always returns true) |
+| Auth | Authentication & Authorization | ✅ | SecurityChain auth chain + publish/subscribe ACL (IAuthenticator/IAuthorizer strategy) |
 
 > ✅ Implemented　⚠️ Partially implemented　❌ Not implemented
 

@@ -210,7 +210,7 @@ allow_anonymous = true
 | Session Present  | ✅ | 根据 CleanSession 和已有会话状态正确计算 |
 | Will Flag        | ✅ | CONNECT 报文解析、校验支持，遗嘱消息发布已实现 |
 | Will Retain      | ✅ | 保留标志的遗嘱消息存入 RetainStore |
-| Username/Password | ⚠️ | CONNECT 报文解析、UTF-8 校验、allow_anonymous 配置支持，认证逻辑为桩函数（始终返回 true） |
+| Username/Password | ✅ | CONNECT 报文解析、UTF-8 校验、allow_anonymous 配置支持，PasswordAuthenticator 认证 |
 | Keep Alive       | ✅ | 1.5× KeepAlive 超时自动断开机制 |
 | ClientID 校验    | ✅ | 长度 ≤ 23 字符、UTF-8 编码校验 |
 | UTF-8 校验       | ✅ | ClientID、Username、Will Topic 的 UTF-8 编码校验 |
@@ -239,7 +239,7 @@ allow_anonymous = true
 | 心跳 | PINGREQ/PINGRESP | ✅ | 客户端心跳请求与服务端响应 |
 | 断开 | DISCONNECT 处理 | ✅ | 客户端优雅断开连接 |
 | 遗嘱 | Will Message 发布 | ✅ | 异常断开时向订阅者发布遗嘱消息 |
-| 认证 | 真实认证逻辑 | ❌ | 当前为桩函数（始终返回 true） |
+| 认证 | 认证与授权 | ✅ | SecurityChain 认证链 + 发布/订阅 ACL（IAuthenticator/IAuthorizer 策略模式） |
 
 > ✅ 已实现　⚠️ 部分实现　❌ 未实现
 
