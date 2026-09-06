@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 21:11:04
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 11:00:46
+ * Last Modified: 2026-09-06 16:08:54
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -136,6 +136,8 @@ inline std::optional<bool> parse_bool(const std::string& s) {
 inline bool is_valid_utf8(const std::string& s) {
     const auto* bytes = reinterpret_cast<const uint8_t*>(s.data());
     size_t i = 0, n = s.size();
+
+    if (n == 0) return false;
 
     while (i < n) {
         uint8_t lead = bytes[i];

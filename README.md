@@ -214,8 +214,10 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Will Retain      |   ✅   | Retained will message stored in RetainStore |
 | Username/Password |   ✅   | CONNECT packet parsing, UTF-8 validation, allow_anonymous config supported; PasswordAuthenticator |
 | Keep Alive       |   ✅   | 1.5× KeepAlive timeout auto-disconnect mechanism |
-| ClientID Validation | ✅ | Length ≤ 23 chars, UTF-8 encoding validation |
+| ClientID Validation | ✅ | Length ≤ 23 chars (id_rejected if exceeded), UTF-8 encoding validation |
+| Auto-generate ClientID | ✅ | Auto-generate ClientID (auto-{seq}) when empty with CleanSession=1 |
 | UTF-8 Validation |   ✅   | UTF-8 validation for ClientID, Username, Will Topic |
+| CONNECT Flag Validation | ✅ | Username/Password flag consistency check; Will flag/qos/retain validation |
 | Duplicate ClientID | ✅ | Same ClientID reconnect disconnects old connection (MQTT-3.1.4-2) |
 | Duplicate CONNECT | ✅ | Second CONNECT on same connection treated as protocol violation (MQTT-3.1.0-2) |
 | Admin Console    |   ✅   | Telnet port 10000, supports help/status/sessions/kick/quit commands |
@@ -236,7 +238,7 @@ Based on MQTT 3.1.1 (OASIS Standard). Current implementation progress:
 | Subscribe | SUBSCRIBE/SUBACK | ✅ | Topic subscription + granted QoS response (with topic filter validation) |
 | Subscribe | UNSUBSCRIBE/UNSUBACK | ✅ | Unsubscribe |
 | Subscribe | Topic wildcard matching | ✅ | `+` single-level, `#` multi-level wildcards (TopicTree implementation) |
-| Session | Session state persistence | ❌ | Save subscriptions and pending messages when CleanSession=0 |
+| Session | Session state persistence | ⚠️ | In-memory: subscriptions preserved across disconnect when CleanSession=0; disk persistence (survive broker restart) not implemented |
 | Session | Offline message queue | ✅ | Outbox caches offline QoS 1/2 messages, delivered on reconnection ([MQTT-3.1.2-5]) |
 | Heartbeat | PINGREQ/PINGRESP | ✅ | Client heartbeat request and server response |
 | Disconnect | DISCONNECT handling | ✅ | Graceful client disconnection |

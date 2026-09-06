@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 22:10:35
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 22:14:36
+ * Last Modified: 2026-09-06 16:13:13
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -50,28 +50,35 @@ Router::Router(BrokerServices &service) : services_(service)
 
 void Router::route(const Message &msg)
 {
+    // [MQTT-3.3.4]: Deduplicate overlapping subscriptions per subscriber.
+    // When multiple subscriptions match, deliver once at the highest effective QoS.
+    std::unordered_map<std::string, Qos> best_qos;
     for (const auto& m : services_.topics.match(msg.topic)) {
         auto sub_session = m.session.lock();
         if (!sub_session) continue;
-        auto subscriber = services_.sessions.byId(sub_session->client_id);
-        if (!subscriber)
-            return;
-
-        auto session = subscriber->session.lock();
-        auto sub_channel = subscriber->channel.lock();
         const Qos effectiveQos = static_cast<uint8_t>(m.qos) < static_cast<uint8_t>(msg.qos)
                                     ? m.qos : msg.qos;
-        if (subscriber && subscriber->connected
-            && sub_channel && !sub_channel->isClosing()) {
-            deliver(subscriber, msg, m.qos, false);
+        auto& q = best_qos[sub_session->client_id];
+        if (static_cast<uint8_t>(effectiveQos) > static_cast<uint8_t>(q))
+            q = effectiveQos;
+    }
+
+    for (const auto& [cid, qos] : best_qos) {
+        auto subscriber = services_.sessions.byId(cid);
+        if (!subscriber) continue;
+        auto session = subscriber->session.lock();
+        auto sub_channel = subscriber->channel.lock();
+        if (subscriber->connected && sub_channel && !sub_channel->isClosing()) {
+            deliver(subscriber, msg, qos, false);
         }
-        else if (!sub_session->clean_session && effectiveQos > Qos::AtMostOnce) {
-            services_.outbox.enqueue(sub_session, msg, effectiveQos);
+        else if (session && !session->clean_session && qos > Qos::AtMostOnce) {
+            services_.outbox.enqueue(session, msg, qos);
         }
     }
 }
 
-void Router::deliver(std::shared_ptr<ClientContext> subscriber, const Message &msg, Qos granted_qos, bool as_retained)
+void Router::deliver(std::shared_ptr<ClientContext> subscriber, const Message &msg, Qos granted_qos,
+     bool as_retained, bool dup)
 {
     auto sub_channel = subscriber->channel.lock();
     if (!sub_channel || sub_channel->isClosing())
@@ -85,6 +92,7 @@ void Router::deliver(std::shared_ptr<ClientContext> subscriber, const Message &m
     pub.qos = static_cast<uint8_t>(granted_qos)
                  < static_cast<uint8_t>(msg.qos) ? granted_qos : msg.qos;
     pub.retain = as_retained;
+    pub.dup = dup;
     pub.source_client = msg.source_client;
 
     if (pub.qos != Qos::AtMostOnce) {

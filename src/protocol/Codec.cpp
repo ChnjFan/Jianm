@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 11:27:08
+ * Last Modified: 2026-09-06 16:56:21
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -349,6 +349,9 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
 
     if (cp.has_will) {
         readString16(buffer, index, cp.will_topic);
+        if (!jianm::common::is_valid_utf8(cp.will_topic)) {
+            throw std::runtime_error("CONNECT will topic is not utf-8");
+        }
         readString16(buffer, index, cp.will_payload);
     }
 

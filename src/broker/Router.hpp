@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 22:03:23
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 13:52:49
+ * Last Modified: 2026-09-06 16:12:21
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -49,7 +49,8 @@ public:
     explicit Router(BrokerServices& service);
 
     void route(const Message& msg);
-    void deliver(std::shared_ptr<ClientContext> subscriber, const Message& msg, Qos granted_qos, bool as_retained);
+    void deliver(std::shared_ptr<ClientContext> subscriber, const Message& msg, Qos granted_qos,
+         bool as_retained, bool dup = false);
 
     void resend(std::shared_ptr<ClientContext> subscriber, uint16_t packet_id);
 private:

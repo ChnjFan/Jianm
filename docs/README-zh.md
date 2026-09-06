@@ -212,8 +212,10 @@ allow_anonymous = true
 | Will Retain      | ✅ | 保留标志的遗嘱消息存入 RetainStore |
 | Username/Password | ✅ | CONNECT 报文解析、UTF-8 校验、allow_anonymous 配置支持，PasswordAuthenticator 认证 |
 | Keep Alive       | ✅ | 1.5× KeepAlive 超时自动断开机制 |
-| ClientID 校验    | ✅ | 长度 ≤ 23 字符、UTF-8 编码校验 |
+| ClientID 校验    | ✅ | 长度 ≤ 23 字符（超出返回 id_rejected）、UTF-8 编码校验 |
+| 自动生成 ClientID | ✅ | CleanSession=1 且 ClientID 为空时自动生成（auto-{seq}） |
 | UTF-8 校验       | ✅ | ClientID、Username、Will Topic 的 UTF-8 编码校验 |
+| CONNECT 标志校验 | ✅ | Username/Password 标志一致性检查；Will 标志/qos/retain 校验 |
 | 重复 ClientID    | ✅ | 同一 ClientID 重连时断开旧连接（MQTT-3.1.4-2） |
 | 重复 CONNECT     | ✅ | 同一连接重复发送 CONNECT 视为协议违规（MQTT-3.1.0-2） |
 | Admin 管理控制台 | ✅ | Telnet 10000 端口，支持 help/status/sessions/kick/quit 命令 |
@@ -234,7 +236,7 @@ allow_anonymous = true
 | 订阅 | SUBSCRIBE/SUBACK | ✅ | 订阅主题 + granted QoS 返回（含 topic filter 校验） |
 | 订阅 | UNSUBSCRIBE/UNSUBACK | ✅ | 取消订阅 |
 | 订阅 | Topic 通配符匹配 | ✅ | `+` 单层、`#` 多层通配符（TopicTree 实现） |
-| 会话 | 会话状态持久化 | ❌ | CleanSession=0 时保存订阅和 pending 消息 |
+| 会话 | 会话状态持久化 | ⚠️ | 内存级：CleanSession=0 时订阅在断开后保留；磁盘持久化（Broker 重启恢复）未实现 |
 | 会话 | 离线消息队列 | ✅ | Outbox 缓存离线 QoS 1/2 消息，重连时投递（[MQTT-3.1.2-5]） |
 | 心跳 | PINGREQ/PINGRESP | ✅ | 客户端心跳请求与服务端响应 |
 | 断开 | DISCONNECT 处理 | ✅ | 客户端优雅断开连接 |

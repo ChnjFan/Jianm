@@ -4,7 +4,7 @@
  * Created Date: 2026-08-24 21:03:10
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 14:38:41
+ * Last Modified: 2026-09-06 16:03:21
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -96,7 +96,7 @@ inline bool isTopicFilterInvalid(const std::string& filter) {
     for (size_t i = 0; i < toks.size(); ++i) {
         const auto& t = toks[i];
         if (t == "#") {
-            if (i != toks.size() - 1) return false;
+            if (i != toks.size() - 1) return true;
         } else if (t == "+") {
             continue;  // Independent "+" legal
         } else if (t.find_first_of("+#") != std::string::npos) {

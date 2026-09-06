@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 11:30:24
+ * Last Modified: 2026-09-06 16:13:25
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -140,7 +140,7 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
     }
 
     if (!service.security.authenticate(cid, cp.username, cp.password)) {
-        rc = ConnackReturnCode::not_authorized;
+        rc = ConnackReturnCode::bad_username_password;
         return;
     }
 
@@ -175,7 +175,7 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
     auto out = std::make_shared<Packet>();
     out->type = PacketType::Connack;
     auto& out_cp = out->body.emplace<ConnackPacket>();
-    out_cp.session_present = existed;
+    out_cp.session_present = cp.clean_session ? 0 : existed;
     out_cp.return_code = ConnackReturnCode::accepted;
     channel->asyncSend(out);
 
@@ -186,7 +186,7 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         auto session = client->session.lock();
         const size_t drained = service.outbox.drain(session,
             [&](const Message& msg, Qos qos, bool retained){
-                router.deliver(client, msg, qos, retained);
+                router.deliver(client, msg, qos, retained, true);
             });
         if (drained > 0) {
             JM_LOG_INFO("drained {} queued message(s) for {}", drained, cid);
