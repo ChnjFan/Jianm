@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 16:56:21
+ * Last Modified: 2026-09-06 21:45:55
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -426,6 +426,9 @@ PacketPtr Codec::deserializePublish(const std::vector<uint8_t> &buffer)
 
     if (static_cast<uint8_t>(pub.qos) > static_cast<uint8_t>(Qos::AtMostOnce)) {
         pub.packet_id = readUint16(buffer, index);
+    }
+    if (pub.packet_id == 0) {
+        throw std::runtime_error("PUBLISH packet_id is zero");
     }
 
     const size_t payloadSize = remainingLength - (index - headerStart);

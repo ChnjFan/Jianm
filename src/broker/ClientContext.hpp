@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:03:05
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 13:41:07
+ * Last Modified: 2026-09-06 21:39:27
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -43,6 +43,7 @@
 
 #include "jianm/model/Qos.hpp"
 #include "jianm/model/Session.hpp"
+#include "jianm/model/Message.hpp"
 
 
 namespace jianm {
@@ -83,7 +84,7 @@ struct ClientContext {
 
     // Inbound QoS Status: This client acts as a publisher， key is Packet ID
     std::unordered_map<uint16_t, std::string> awaiting_puback;  // pid -> topic
-    std::unordered_map<uint16_t, std::string> awaiting_pubrel;  // QoS2 pid -> topic
+    std::unordered_map<uint16_t, Message> awaiting_pubrel;  // QoS2 pid -> topic
 
     // Outbound QoS status: This client acts as a subscriber
     // messages are delivered to it by the broker
@@ -102,7 +103,11 @@ struct ClientContext {
     uint8_t max_retries = 10;
     std::chrono::milliseconds retry_interval{5000};
 
-    uint16_t nextPacketId() { return next_out_pid++; }
+    uint16_t nextPacketId() {
+        next_out_pid++;
+        if (next_out_pid == 0) next_out_pid = 1;
+        return next_out_pid;
+    }
 };
 
 } // namespace broker

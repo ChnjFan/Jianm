@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 16:13:25
+ * Last Modified: 2026-09-06 21:44:41
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -217,6 +217,8 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
     pub.source_client = client->client_id;
     service.received++;
 
+    Message msg{pub.topic, pub.payload, pub.qos, pub.retain, client->client_id};
+
     // QoS Semantics: DUP retransmission deduplication
     // If the packet‑id has been received, only an ACK is returned without repeated routing
     if (pub.qos == Qos::AtLeastOnce) {
@@ -231,7 +233,7 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
             connAck(client, PacketType::Pubrec, pub.packet_id);
             return;
         }
-        client->awaiting_pubrel.emplace(pub.packet_id, pub.topic);
+        client->awaiting_pubrel.emplace(pub.packet_id, msg);
     }
 
     // Plugins can discard or modify messages
@@ -249,13 +251,15 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         return;
     }
 
-    Message msg{pub.topic, pub.payload, pub.qos, pub.retain, client->client_id};
     if (pub.retain) {
         service.retains.store(pub.topic, msg);
     }
-    Router router(service);
-    router.route(msg);
-    
+
+    if (pub.qos != Qos::ExactlyOnce) {
+        Router router(service);
+        router.route(msg);
+    }
+
     if (pub.qos == Qos::AtLeastOnce)
         connAck(client, PacketType::Puback, pub.packet_id);
     else if (pub.qos == Qos::ExactlyOnce)
@@ -270,6 +274,9 @@ void SubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientCon
         throw std::runtime_error("SUBSCRIBE before CONNECT");
     }
 
+    if (sub.entries.empty()) {
+        throw std::runtime_error("SUBSCRIBE filter empty");
+    }
 
     auto out = std::make_shared<Packet>();
     out->type = PacketType::Suback;
@@ -326,6 +333,10 @@ void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientC
      const std::shared_ptr<Packet> &pkt)
 {
     const auto&[packet_id, topics] = std::get<UnsubscribePacket>(pkt->body);
+    if (topics.empty()) {
+        throw std::runtime_error("UNSUBSCRIBE topic empty");
+    }
+    
     for (const auto& filter : topics) {
         const auto session = client->session.lock();
         if (!session) {
@@ -350,7 +361,7 @@ void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientC
     }
 }
 
-void AckHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
+void AckHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> &client,
      const std::shared_ptr<Packet> &pkt)
 {
     const auto&[packet_id] = std::get<AckPacket>(pkt->body);
@@ -366,12 +377,19 @@ void AckHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr
                 it->second.pubrel_sent = true;
                 connAck(client, PacketType::Pubrel, packet_id);
             }
-        }
             break;
+        }
         case PacketType::Pubrel:    // QoS 2 release
-            client->awaiting_pubrel.erase(packet_id);
+        {
+            if (client->awaiting_pubrel.count(packet_id)) {
+                auto msg = client->awaiting_pubrel[packet_id];
+                Router router(service);
+                router.route(msg);
+                client->awaiting_pubrel.erase(packet_id);
+            }
             connAck(client, PacketType::Pubcomp, packet_id);
             break;
+        }
         case PacketType::Pubcomp:   // QoS 2 complete
             client->out_inflight.erase(packet_id);
             break;

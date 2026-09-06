@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(Jianm
-    VERSION 0.1.0
+    VERSION 0.1.1
     DESCRIPTION "Build your own MQTT broker from scratch"
     LANGUAGES CXX
 )
