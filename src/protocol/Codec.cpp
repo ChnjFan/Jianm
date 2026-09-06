@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 21:45:55
+ * Last Modified: 2026-09-06 22:01:38
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -215,11 +215,13 @@ PacketPtr Codec::deserializeAckPacket(const std::vector<uint8_t> &buffer)
     header.byte = readByte(buffer, index);
     const uint8_t flags = header.byte & 0x0f;
 
-    if (PacketType::Pubrel == static_cast<PacketType>(header.bits.type)
-        && flags != 0x02) { // PUBREL Qos must be 1
-        throw std::runtime_error("PUBREL flags error");
+    if (PacketType::Pubrel == static_cast<PacketType>(header.bits.type)) {
+        if (flags != 0x02) { // PUBREL reserved bits must be 0010 [MQTT-3.6.1-1]
+            throw std::runtime_error("PUBREL flags error");
+        }
     }
     else if (flags != 0) {
+        // PUBACK, PUBREC, PUBCOMP, SUBACK, UNSUBACK, PINGRESP must have reserved bits = 0000
         throw std::runtime_error("PUBLISH ACK flags error");
     }
 
@@ -426,9 +428,9 @@ PacketPtr Codec::deserializePublish(const std::vector<uint8_t> &buffer)
 
     if (static_cast<uint8_t>(pub.qos) > static_cast<uint8_t>(Qos::AtMostOnce)) {
         pub.packet_id = readUint16(buffer, index);
-    }
-    if (pub.packet_id == 0) {
-        throw std::runtime_error("PUBLISH packet_id is zero");
+        if (pub.packet_id == 0) {
+            throw std::runtime_error("PUBLISH packet_id is zero");
+        }
     }
 
     const size_t payloadSize = remainingLength - (index - headerStart);

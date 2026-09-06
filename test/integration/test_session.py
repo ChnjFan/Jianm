@@ -67,7 +67,8 @@ def test_offline_qos2_delivery(broker, client_factory):
     time.sleep(0.5)
 
     pub = client_factory(client_id="offline-pub-2")
-    pub.publish(topic, "queued-qos2", qos=2)
+    info = pub.publish(topic, "queued-qos2", qos=2)
+    info.wait_for_publish(timeout=5)
     time.sleep(1)
     pub.loop_stop()
     pub.disconnect()
