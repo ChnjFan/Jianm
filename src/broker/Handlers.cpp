@@ -4,7 +4,7 @@
  * Created Date: 2026-08-23 16:33:49
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 21:44:41
+ * Last Modified: 2026-09-07 21:11:02
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -143,6 +143,10 @@ void ConnectHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
         rc = ConnackReturnCode::bad_username_password;
         return;
     }
+    else if (!service.security.canConnect(cid)) {
+        rc = ConnackReturnCode::not_authorized;
+        return;
+    }
 
     // Session Takeover: A new connection with the same ClientID kicks out the old connection
     // the old connection will not publish will messages and the session will not be destroyed
@@ -202,6 +206,10 @@ void PublishHandler::handle(BrokerServices &service, std::shared_ptr<ClientConte
      const std::shared_ptr<Packet> &pkt)
 {
     auto& pub = std::get<PublishPacket>(pkt->body);
+
+    if (!client->connected) {
+        throw std::runtime_error("PUBLISH before CONNECT");
+    }
 
     if (isTopicNameInvalid(pub.topic)) {
         throw std::runtime_error("invlaid PUBLISH topic");
@@ -333,6 +341,10 @@ void UnsubscribeHandler::handle(BrokerServices &service, std::shared_ptr<ClientC
      const std::shared_ptr<Packet> &pkt)
 {
     const auto&[packet_id, topics] = std::get<UnsubscribePacket>(pkt->body);
+    if (!client->connected) {
+        throw std::runtime_error("UNSUBSCRIBE before CONNECT");
+    }
+
     if (topics.empty()) {
         throw std::runtime_error("UNSUBSCRIBE topic empty");
     }
@@ -365,6 +377,11 @@ void AckHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> 
      const std::shared_ptr<Packet> &pkt)
 {
     const auto&[packet_id] = std::get<AckPacket>(pkt->body);
+
+    if (!client->connected) {
+        throw std::runtime_error("ACKPACKET before CONNECT");
+    }
+
     switch (pkt->type) {
         case PacketType::Puback:    // QoS 1 acknowledge
             client->awaiting_puback.erase(packet_id);
@@ -402,6 +419,10 @@ void AckHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> 
 void PingreqHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
      [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
 {
+    if (!client->connected) {
+        throw std::runtime_error("PINGREQ before CONNECT");
+    }
+
     const auto out = std::make_shared<Packet>();
     out->type = PacketType::Pingresp;
     out->body.emplace<EmptyPacket>();

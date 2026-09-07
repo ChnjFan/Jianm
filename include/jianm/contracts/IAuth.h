@@ -4,7 +4,7 @@
  * Created Date: 2026-09-05 23:00:33
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-05 23:04:03
+ * Last Modified: 2026-09-07 21:08:11
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -52,6 +52,7 @@ public:
 class IAuthorizer {
 public:
     virtual ~IAuthorizer() = default;
+    virtual bool canConnect(const std::string& client_id) = 0;
     virtual bool canPublish(const std::string& client_id, const std::string& topic) = 0;
     virtual bool canSubscribe(const std::string& client_id, const std::string& filter) = 0;
 };

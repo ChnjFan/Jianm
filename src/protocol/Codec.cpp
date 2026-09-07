@@ -4,7 +4,7 @@
  * Created Date: 2026-08-22 19:27:59
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 22:01:38
+ * Last Modified: 2026-09-07 21:13:09
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -236,6 +236,9 @@ PacketPtr Codec::deserializeAckPacket(const std::vector<uint8_t> &buffer)
     }
     
     ack.packet_id = readUint16(buffer, index);
+    if (ack.packet_id == 0) {
+        throw std::runtime_error("PUBLISH ACKPACKET packet_id is zero");
+    }
     return packet;
 }
 
@@ -363,7 +366,7 @@ PacketPtr Codec::deserializeConnect(const std::vector<uint8_t> &buffer)
     
     if (cp.bits.username) {
         readString16(buffer, index, cp.username);
-        if (!jianm::common::is_valid_utf8(cp.username)) {
+        if (!jianm::common::is_valid_utf8(cp.username) && !cp.username.empty()) {
             throw std::runtime_error("CONNECT username is not utf-8");
         }
     }

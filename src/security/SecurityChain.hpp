@@ -4,7 +4,7 @@
  * Created Date: 2026-09-05 22:59:25
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:01:56
+ * Last Modified: 2026-09-07 21:09:33
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -55,6 +55,7 @@ public:
 
     bool authenticate(const std::string& client_id, const std::string& username,
                       const std::string& password);
+    bool canConnect(const std::string& client_id);
     bool canPublish(const std::string& client_id, const std::string& topic);
     bool canSubscribe(const std::string& client_id, const std::string& filter);
 
@@ -74,6 +75,9 @@ public:
 
 class AllowAllAuthorizer : public IAuthorizer {
 public:
+    bool canConnect([[maybe_unused]]const std::string& client_id) override {
+        return true;
+    }
     bool canPublish([[maybe_unused]]const std::string&, [[maybe_unused]]const std::string&) override {
         return true;
     }

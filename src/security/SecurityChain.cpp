@@ -4,7 +4,7 @@
  * Created Date: 2026-09-06 09:51:57
  * Author: ChnjFan
  * -----
- * Last Modified: 2026-09-06 10:05:07
+ * Last Modified: 2026-09-07 21:10:01
  * Modified By: ChnjFan
  * -----
  * Copyright (c) 2026 ChnjFan
@@ -52,6 +52,11 @@ bool SecurityChain::authenticate(const std::string &client_id, const std::string
             return true;
     }
     return auths_.empty();
+}
+
+bool SecurityChain::canConnect(const std::string &client_id)
+{
+    return authz_ ? authz_->canConnect(client_id) : true;
 }
 
 bool SecurityChain::canPublish(const std::string &client_id, const std::string &topic) {
