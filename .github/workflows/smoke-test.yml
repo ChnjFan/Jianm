@@ -10,7 +10,7 @@ on:
 jobs:
   broker-unit:
     name: C++ Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +31,7 @@ jobs:
 
   broker-integration:
     name: Python Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: broker-unit
     strategy:
       fail-fast: false
