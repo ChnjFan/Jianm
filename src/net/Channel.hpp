@@ -93,7 +93,6 @@ private:
     std::shared_ptr<ITransport> transport_;
 
     std::atomic<bool> closing_ = false;
-    [[maybe_unused]] bool close_posted_ = false;
     uint16_t keepalive_ = 0;
     time_point last_read_ = clock::now();
     std::string peer_;

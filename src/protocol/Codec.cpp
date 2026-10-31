@@ -34,6 +34,8 @@
  */
 
 
+#include "common/Attributes.hpp"
+
 #include "Codec.hpp"
 
 #include <stdexcept>
@@ -746,14 +748,14 @@ bool Codec::serializeUnsubAck(PacketPtr pkt, std::vector<uint8_t> &buffer)
     return true;
 }
 
-bool Codec::serializePingResp([[maybe_unused]]PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializePingResp(JIANM_MAYBE_UNUSED PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     writeByte(buffer, MQTT_PINGRESP_BYTE);
     writeByte(buffer, 0); // remaining length
     return true;
 }
 
-bool Codec::serializeDisconnect([[maybe_unused]]PacketPtr pkt, std::vector<uint8_t> &buffer)
+bool Codec::serializeDisconnect(JIANM_MAYBE_UNUSED PacketPtr pkt, std::vector<uint8_t> &buffer)
 {
     writeByte(buffer, MQTT_DISCONNECT_BYTE);
     writeByte(buffer, 0); // remaining length

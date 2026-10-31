@@ -33,6 +33,8 @@
  * HISTORY:
  */
 
+#include "common/Attributes.hpp"
+
 #include "Handlers.hpp"
 
 #include <stdexcept>
@@ -416,8 +418,8 @@ void AckHandler::handle(BrokerServices &service, std::shared_ptr<ClientContext> 
     }
 }
 
-void PingreqHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
-     [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
+void PingreqHandler::handle(JIANM_MAYBE_UNUSED BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     JIANM_MAYBE_UNUSED const std::shared_ptr<Packet> &pkt)
 {
     if (!client->connected) {
         throw std::runtime_error("PINGREQ before CONNECT");
@@ -431,8 +433,8 @@ void PingreqHandler::handle([[maybe_unused]]BrokerServices &service, std::shared
     }
 }
 
-void DisconnectHandler::handle([[maybe_unused]]BrokerServices &service, std::shared_ptr<ClientContext> &client,
-     [[maybe_unused]]const std::shared_ptr<Packet> &pkt)
+void DisconnectHandler::handle(JIANM_MAYBE_UNUSED BrokerServices &service, std::shared_ptr<ClientContext> &client,
+     JIANM_MAYBE_UNUSED const std::shared_ptr<Packet> &pkt)
 {
     // Specification requirement [MQTT-3.14.1-1]:
     // When a Client sends a DISCONNECT Packet to the Server, it is indicating that it

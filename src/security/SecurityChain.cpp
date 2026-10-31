@@ -33,6 +33,8 @@
  * HISTORY:
  */
 
+#include "common/Attributes.hpp"
+
 #include "SecurityChain.hpp"
 
 using namespace jianm::security;
@@ -72,7 +74,7 @@ PasswordAuthenticator::PasswordAuthenticator()
     // TODO: Load user and password
 }
 
-bool PasswordAuthenticator::authenticate([[maybe_unused]]const std::string &client_id, const std::string &username,
+bool PasswordAuthenticator::authenticate(JIANM_MAYBE_UNUSED const std::string &client_id, const std::string &username,
      const std::string &password)
 {
     // User unrestricted authentication is not configured

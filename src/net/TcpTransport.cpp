@@ -33,6 +33,8 @@
  * HISTORY:
  */
 
+#include "common/Attributes.hpp"
+
 #include "TcpTransport.hpp"
 
 #include <mutex>
@@ -101,7 +103,7 @@ void TcpTransport::asyncSend()
     const auto& buffer = send_lists_.front();
     auto self = shared_from_this();
     asio::async_write(socket_, asio::buffer(buffer),
-        [self, this](const asio::error_code& error, [[maybe_unused]] size_t bytes_transfer) {
+        [self, this](const asio::error_code& error, JIANM_MAYBE_UNUSED size_t bytes_transfer) {
             if (error) {
                 close();
                 return;

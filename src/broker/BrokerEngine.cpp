@@ -34,6 +34,8 @@
  */
 
 
+#include "common/Attributes.hpp"
+
 #include <thread>
 #include <asio.hpp>
 #include <queue>
@@ -208,7 +210,7 @@ void BrokerEngine::Impl::listen()
         channels_.insert({channel.get(), channel});
     }
 
-    [[maybe_unused]] auto ctx = sessions_.addChannel(channel);
+    JIANM_MAYBE_UNUSED auto ctx = sessions_.addChannel(channel);
     // Bind packet‑reception and disconnection callbacks
     channel->on_packet = [this, self](const jianm::net::ChannelPtr& channel,
                             const jianm::protocol::PacketPtr& packet) {

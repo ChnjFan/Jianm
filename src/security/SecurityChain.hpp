@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include "common/Attributes.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -67,21 +69,21 @@ private:
 /// @brief Default policy: Allow all after configuring allow_anonymous
 class AllowAllAuthenticator : public IAuthenticator {
 public:
-    bool authenticate([[maybe_unused]]const std::string&, [[maybe_unused]]const std::string&,
-        [[maybe_unused]]const std::string&) override {
+    bool authenticate(JIANM_MAYBE_UNUSED const std::string&, JIANM_MAYBE_UNUSED const std::string&,
+        JIANM_MAYBE_UNUSED const std::string&) override {
         return true;
     }
 };
 
 class AllowAllAuthorizer : public IAuthorizer {
 public:
-    bool canConnect([[maybe_unused]]const std::string& client_id) override {
+    bool canConnect(JIANM_MAYBE_UNUSED const std::string& client_id) override {
         return true;
     }
-    bool canPublish([[maybe_unused]]const std::string&, [[maybe_unused]]const std::string&) override {
+    bool canPublish(JIANM_MAYBE_UNUSED const std::string&, JIANM_MAYBE_UNUSED const std::string&) override {
         return true;
     }
-    bool canSubscribe([[maybe_unused]]const std::string&, [[maybe_unused]]const std::string&) override {
+    bool canSubscribe(JIANM_MAYBE_UNUSED const std::string&, JIANM_MAYBE_UNUSED const std::string&) override {
         return true;
     }
 };

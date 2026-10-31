@@ -35,6 +35,8 @@
 
 
 
+#include "common/Attributes.hpp"
+
 #include "jianm/api/BrokerEngine.hpp"
 
 #include "common/ConfigMgr.hpp"
@@ -77,7 +79,7 @@ int main(int argc, char* argv[]) {
         }
 
         asio::signal_set signals(ctx, SIGINT, SIGTERM);
-        signals.async_wait([&ctx](const asio::error_code &error, [[maybe_unused]] int signal_number) {
+        signals.async_wait([&ctx](const asio::error_code &error, JIANM_MAYBE_UNUSED int signal_number) {
             if (error) {
                 return;
             }
